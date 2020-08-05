@@ -16,6 +16,163 @@ var (
 	reInitialSentence = regexp.MustCompile("^(.*?)[\\.!\\?](?:\\s|$)")
 )
 
+// YAMLFrontMatter represents the normal YAML front matter at the start of an entry.
+type YAMLFrontMatter struct {
+	date  string   `yaml:"date"`
+	title string   `yaml:"title"`
+	tags  []string `yaml:"tags"`
+}
+
+// Parser represents an entry parser.
+type Parser struct {
+	path string
+
+	originalContent string
+	strippedContent string
+
+	dateLayout string
+
+	reBuiltinTag *regexp.Regexp
+	reCustomTag  *regexp.Regexp
+}
+
+// NewParser returns a new parser.
+func NewParser(path, content, dateLayout, builtinTagPrefix, customTagPrefix string) (Parser, error) {
+	reBuiltinTag, err := regexp.Compile(builtinTagPrefix)
+	if err != nil {
+		return Parser{}, ErrEntryParseFailed{
+			Path: path, Err: fmt.Errorf("could not build builtin tag regex: %w", err),
+		}
+	}
+
+	reCustomTag, err := regexp.Compile(regexp.QuoteMeta(customTagPrefix) + "[\\w|-]+")
+	if err != nil {
+		return Parser{}, ErrEntryParseFailed{
+			Path: path, Err: fmt.Errorf("could not build custom tag regex: %w", err),
+		}
+	}
+
+	return Parser{
+		path:            path,
+		originalContent: content,
+		dateLayout:      dateLayout,
+		reBuiltinTag:    reBuiltinTag,
+		reCustomTag:     reCustomTag,
+	}, nil
+}
+
+// err creates a new error with the default values filled in.
+func (p Parser) err(format string, a ...interface{}) error {
+	return ErrEntryParseFailed{
+		Path: p.path,
+		Err:  fmt.Errorf(format, a...),
+	}
+}
+
+// Parse the parsed Entry struct.
+// It does this in 4 stages:
+// 1. Parse the front matter and remove it from the entry's content.
+// 2. Gets a title and date value from the entry content if they weren't specified in the front-matter.
+// 3. Parse tags.
+// 4. Parse links.
+func (p Parser) Parse() (*Entry, error) {
+	var entry *Entry
+
+	frontMatter, err := p.extractFrontMatter()
+	if err != nil {
+		return nil, err
+	}
+
+	concrete, err := p.parseFrontMatterStruct(frontMatter)
+	if err != nil {
+		return nil, err
+	}
+
+	if concrete.title == "" {
+		title, err := p.getFirstSentence()
+		if err != nil {
+			return nil, err
+		}
+
+		entry.Title = title
+	} else {
+		entry.Title = concrete.title
+	}
+
+	return nil, nil
+}
+
+// extractFrontMatter extracts the YAML front matter text from the entry and returns it, along with setting
+// the .strippedContent value to the original content without the front matter included.
+func (p Parser) extractFrontMatter() (string, error) {
+	if !reFrontMatter.MatchString(p.originalContent) {
+		// No front-matter in text.
+		p.strippedContent = reInitialNewlines.ReplaceAllString(p.originalContent, "")
+		return "", nil
+	}
+
+	lines := strings.Split(p.originalContent, "\n")
+
+	startOffset := 4 // "---\n", the byte offset of where the YAML starts.
+	endOffset := 4   // The byte offset of where the YAML ends.
+
+	// Iterate through the lines, skipping the first one as that is the opening
+	// endOffset is initialised to 4 since we skip the inital line
+	for _, line := range lines[1:] {
+		if line != "---" {
+			endOffset += len(line)
+		} else {
+			break
+		}
+	}
+
+	endOffset += len(lines) // To include newlines since they were trimmed off the end.
+
+	if startOffset > endOffset {
+		return "", p.err("could not find end offset of yaml front matter")
+	}
+
+	frontMatter := p.originalContent[startOffset:endOffset]
+	p.strippedContent = strings.ReplaceAll(p.originalContent, frontMatter, "")
+
+	return frontMatter, nil
+}
+
+// parseFrontMatterStruct takes the string of a YAML front matter and unmarshals it to a struct.
+func (p Parser) parseFrontMatterStruct(frontMatter string) (YAMLFrontMatter, error) {
+	config := YAMLFrontMatter{}
+	err := yaml.Unmarshal([]byte(frontMatter), &config)
+	if err != nil {
+		return YAMLFrontMatter{}, p.err("couldn't unmarshal front matter: %w", err)
+	}
+
+	return config, nil
+}
+
+// parseFrontMatterMap takes the string of a YAML front matter and unmarshals it to a map[string]interface{}.
+func (p Parser) parseFrontMatterMap(frontMatter string) (map[string]interface{}, error) {
+	config := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(frontMatter), &config)
+	if err != nil {
+		return nil, p.err("couldn't unmarshal front matter: %w", err)
+	}
+
+	return config, nil
+}
+
+// getFirstSentence returns the first sentence from the entry text. This is used to get an alternate title if
+// no other is available.
+func (p Parser) getFirstSentence() (string, error) {
+	initialSentence := reInitialSentence.FindString(p.strippedContent)
+	initialSentence = strings.Trim(initialSentence, ".!? ") // Remove ending punctuation
+
+	if initialSentence == "" {
+		return "", p.err("could not locate title as front matter or initial sentence")
+	}
+
+	return initialSentence, nil
+}
+
 // parseFrontMatter extracts the key-value pairs from a markdown file with front-matter.
 // It returns a map[string]interface{}, followed by a string which is the content with the front-matter removed.
 func parseFrontMatter(path, content string) (map[string]interface{}, string, error) {
