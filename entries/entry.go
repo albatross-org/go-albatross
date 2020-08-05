@@ -52,11 +52,16 @@ func NewEntry(fs afero.Fs, path string) (*Entry, error) {
 
 	content := string(bytes)
 
-	dateFormat := "2006-01-02 15:04" // TODO: get date format from config or something. Hard-coded for now.
+	dateLayout := "2006-01-02 15:04" // TODO: get date format from config or something. Hard-coded for now.
 	builtinTagPrefix := "@!"         // TODO: get tag prefixes from config or something.
 	customTagPrefix := "@?"
 
-	entry, err := parseExtendedMarkdown(path, content, dateFormat, builtinTagPrefix, customTagPrefix)
+	parser, err := NewParser(dateLayout, builtinTagPrefix, customTagPrefix)
+	if err != nil {
+		return nil, err
+	}
+
+	entry, err := parser.Parse(path, content)
 	if err != nil {
 		return nil, err
 	}

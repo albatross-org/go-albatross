@@ -1,7 +1,6 @@
 package entries
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -10,26 +9,46 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Regex hell. I'm sorry.
+
 var (
-	reFrontMatter     = regexp.MustCompile("^---\n(?:\n|.)+---\n+")
+	// reFrontMatter matches the front matter of an entry.
+	reFrontMatter = regexp.MustCompile("^---\n(?:\n|.)+---\n+")
+
+	// reInitialNewlines matches to any newlines at the beginning of a string.
 	reInitialNewlines = regexp.MustCompile("^\n+")
+
+	// reInitialSentence matches to the first sentence in a string.
 	reInitialSentence = regexp.MustCompile("^(.*?)[\\.!\\?](?:\\s|$)")
+
+	// reLinkTitleNoName matches to links which specify only the other entry's title, e.g. "[[Pizza]]" or "[[Ice Cream]]"
+	// Group 1 is the title of the entry that is being linked to.
+	reLinkTitleNoName = regexp.MustCompile(`\[\[([\w\s\d]+)\]\]`)
+
+	// reLinkTitleWithName matches to links which specify the other entry's title and a name for the link, e.g. "[[Pizza](Shown title)]"
+	// Group 1 is the title of the entry that is being linked to.
+	// Group 2 is the name of the link.
+	reLinkTitleWithName = regexp.MustCompile(`\[\[([\w\s\d]+)\]\(([\w\s\d]+)\)\]`)
+
+	// reLinkPathNoName matches to links which specify only the other entry's path, e.g. "{{food/pizza}}" or "{{food/ice-cream}}"
+	// Group 1 is the path of the entry being linked to.
+	reLinkPathNoName = regexp.MustCompile(`{{([\w\d/]+)}}`)
+
+	// reLinkPathWithName matches to links which specify the other entry's path and a name for the link, e.g. "{{food/ice-cream}(Ice Cream)}"
+	// Group 1 is the path of the entry being linked to.
+	// Group 2 is the name of the link.
+	reLinkPathWithName = regexp.MustCompile(`{{([\w\d/]+)}\(([\w\s\d]+)\)}`)
 )
 
 // YAMLFrontMatter represents the normal YAML front matter at the start of an entry.
 type YAMLFrontMatter struct {
-	date  string   `yaml:"date"`
-	title string   `yaml:"title"`
-	tags  []string `yaml:"tags"`
+	Date  string   `yaml:"date"`
+	Title string   `yaml:"title"`
+	Tags  []string `yaml:"tags"`
 }
 
 // Parser represents an entry parser.
 type Parser struct {
-	path string
-
-	originalContent string
-	strippedContent string
-
 	dateLayout string
 
 	reBuiltinTag *regexp.Regexp
@@ -37,84 +56,105 @@ type Parser struct {
 }
 
 // NewParser returns a new parser.
-func NewParser(path, content, dateLayout, builtinTagPrefix, customTagPrefix string) (Parser, error) {
-	reBuiltinTag, err := regexp.Compile(builtinTagPrefix)
+func NewParser(dateLayout, builtinTagPrefix, customTagPrefix string) (Parser, error) {
+	reBuiltinTag, err := regexp.Compile(regexp.QuoteMeta(builtinTagPrefix) + "[\\w|-]+")
 	if err != nil {
-		return Parser{}, ErrEntryParseFailed{
-			Path: path, Err: fmt.Errorf("could not build builtin tag regex: %w", err),
-		}
+		return Parser{}, fmt.Errorf("could not build custom tag regex: %w", err)
 	}
 
 	reCustomTag, err := regexp.Compile(regexp.QuoteMeta(customTagPrefix) + "[\\w|-]+")
 	if err != nil {
-		return Parser{}, ErrEntryParseFailed{
-			Path: path, Err: fmt.Errorf("could not build custom tag regex: %w", err),
-		}
+		return Parser{}, fmt.Errorf("could not build custom tag regex: %w", err)
 	}
 
 	return Parser{
-		path:            path,
-		originalContent: content,
-		dateLayout:      dateLayout,
-		reBuiltinTag:    reBuiltinTag,
-		reCustomTag:     reCustomTag,
+		dateLayout:   dateLayout,
+		reBuiltinTag: reBuiltinTag,
+		reCustomTag:  reCustomTag,
 	}, nil
 }
 
 // err creates a new error with the default values filled in.
-func (p Parser) err(format string, a ...interface{}) error {
+func (p Parser) err(path string, format string, a ...interface{}) error {
 	return ErrEntryParseFailed{
-		Path: p.path,
+		Path: path,
 		Err:  fmt.Errorf(format, a...),
 	}
 }
 
-// Parse the parsed Entry struct.
+// Parse the content of an `entry.md` file into an Entry struct.
 // It does this in 4 stages:
 // 1. Parse the front matter and remove it from the entry's content.
 // 2. Gets a title and date value from the entry content if they weren't specified in the front-matter.
 // 3. Parse tags.
 // 4. Parse links.
-func (p Parser) Parse() (*Entry, error) {
-	var entry *Entry
+func (p Parser) Parse(path, content string) (*Entry, error) {
+	var entry = &Entry{}
 
-	frontMatter, err := p.extractFrontMatter()
+	frontMatter, strippedContent, err := p.extractFrontMatter(path, content)
 	if err != nil {
 		return nil, err
 	}
 
-	concrete, err := p.parseFrontMatterStruct(frontMatter)
+	concrete, err := p.parseFrontMatterConcrete(path, frontMatter)
 	if err != nil {
 		return nil, err
 	}
 
-	if concrete.title == "" {
-		title, err := p.getFirstSentence()
+	if concrete.Title == "" {
+		title, err := p.getFirstSentence(path, strippedContent)
 		if err != nil {
 			return nil, err
 		}
 
 		entry.Title = title
 	} else {
-		entry.Title = concrete.title
+		entry.Title = concrete.Title
 	}
 
-	return nil, nil
+	if concrete.Date == "" {
+		// This is left to the responsibility of NewEntry as it has access to the ModTime of the file.
+	} else {
+		d, err := time.Parse(p.dateLayout, concrete.Date)
+		if err != nil {
+			return nil, p.err(path, "couldn't parse date '%s' with layout '%s': %w", concrete.Date, p.dateLayout, err)
+		}
+
+		entry.Date = d
+	}
+
+	mapFrontMatter, err := p.parseFrontMatterMap(path, frontMatter)
+	if err != nil {
+		return nil, err
+	}
+
+	entry.Metadata = mapFrontMatter
+	entry.Tags = append(entry.Tags, concrete.Tags...)
+
+	tags, err := p.parseTags(path, strippedContent)
+	if err != nil {
+		return nil, err
+	}
+
+	entry.Tags = append(entry.Tags, tags...)
+	entry.OutboundLinks = p.parseLinks(path, strippedContent)
+
+	return entry, nil
 }
 
 // extractFrontMatter extracts the YAML front matter text from the entry and returns it, along with setting
 // the .strippedContent value to the original content without the front matter included.
-func (p Parser) extractFrontMatter() (string, error) {
-	if !reFrontMatter.MatchString(p.originalContent) {
+func (p Parser) extractFrontMatter(path, content string) (frontMatter string, strippedContent string, err error) {
+	if !reFrontMatter.MatchString(content) {
 		// No front-matter in text.
-		p.strippedContent = reInitialNewlines.ReplaceAllString(p.originalContent, "")
-		return "", nil
+		strippedContent = reInitialNewlines.ReplaceAllString(content, "")
+		return "", strippedContent, nil
 	}
 
-	lines := strings.Split(p.originalContent, "\n")
+	lines := strings.Split(content, "\n")
 
 	startOffset := 4 // "---\n", the byte offset of where the YAML starts.
-	endOffset := 4   // The byte offset of where the YAML ends.
+	endOffset := 0   // The byte offset of where the YAML ends.
 
 	// Iterate through the lines, skipping the first one as that is the opening
 	// endOffset is initialised to 4 since we skip the inital line
@@ -129,32 +169,35 @@ func (p Parser) extractFrontMatter() (string, error) {
 	endOffset += len(lines) // To include newlines since they were trimmed off the end.
 
 	if startOffset > endOffset {
-		return "", p.err("could not find end offset of yaml front matter")
+		return "", "", p.err(path, "could not find end offset of yaml front matter")
 	}
 
-	frontMatter := p.originalContent[startOffset:endOffset]
-	p.strippedContent = strings.ReplaceAll(p.originalContent, frontMatter, "")
+	frontMatter = content[startOffset:endOffset]
+	frontMatter = strings.Trim(frontMatter, "\n")
 
-	return frontMatter, nil
+	strippedContent = strings.ReplaceAll(content, content[startOffset-4:endOffset+4], "")
+	strippedContent = strings.TrimLeft(strippedContent, "\n")
+
+	return frontMatter, strippedContent, nil
 }
 
-// parseFrontMatterStruct takes the string of a YAML front matter and unmarshals it to a struct.
-func (p Parser) parseFrontMatterStruct(frontMatter string) (YAMLFrontMatter, error) {
+// parseFrontMatterConcrete takes the string of a YAML front matter and unmarshals it to a struct.
+func (p Parser) parseFrontMatterConcrete(path, frontMatter string) (YAMLFrontMatter, error) {
 	config := YAMLFrontMatter{}
 	err := yaml.Unmarshal([]byte(frontMatter), &config)
 	if err != nil {
-		return YAMLFrontMatter{}, p.err("couldn't unmarshal front matter: %w", err)
+		return YAMLFrontMatter{}, p.err(path, "couldn't unmarshal front matter: %w", err)
 	}
 
 	return config, nil
 }
 
 // parseFrontMatterMap takes the string of a YAML front matter and unmarshals it to a map[string]interface{}.
-func (p Parser) parseFrontMatterMap(frontMatter string) (map[string]interface{}, error) {
+func (p Parser) parseFrontMatterMap(path, frontMatter string) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
 	err := yaml.Unmarshal([]byte(frontMatter), &config)
 	if err != nil {
-		return nil, p.err("couldn't unmarshal front matter: %w", err)
+		return nil, p.err(path, "couldn't unmarshal front matter: %w", err)
 	}
 
 	return config, nil
@@ -162,82 +205,28 @@ func (p Parser) parseFrontMatterMap(frontMatter string) (map[string]interface{},
 
 // getFirstSentence returns the first sentence from the entry text. This is used to get an alternate title if
 // no other is available.
-func (p Parser) getFirstSentence() (string, error) {
-	initialSentence := reInitialSentence.FindString(p.strippedContent)
+func (p Parser) getFirstSentence(path, strippedContent string) (string, error) {
+	initialSentence := reInitialSentence.FindString(strippedContent)
 	initialSentence = strings.Trim(initialSentence, ".!? ") // Remove ending punctuation
 
 	if initialSentence == "" {
-		return "", p.err("could not locate title as front matter or initial sentence")
+		return "", p.err(path, "could not locate title as front matter or initial sentence")
 	}
 
 	return initialSentence, nil
 }
 
-// parseFrontMatter extracts the key-value pairs from a markdown file with front-matter.
-// It returns a map[string]interface{}, followed by a string which is the content with the front-matter removed.
-func parseFrontMatter(path, content string) (map[string]interface{}, string, error) {
-	if !reFrontMatter.MatchString(content) {
-		// No front-matter in text.
-		newContent := reInitialNewlines.ReplaceAllString(content, "")
-		return make(map[string]interface{}), newContent, nil
-	}
-
-	lines := strings.Split(content, "\n")
-
-	startOffset := 4 // "---\n", the byte offset of where the YAML starts.
-
-	endOffset := 4 // The byte offset of where the YAML ends.
-
-	// Iterate through the lines, skipping the first one as that is the opening
-	// endOffset is initialised to 4 since we skip the inital line
-	for _, line := range lines[1:] {
-		if line != "---" {
-			endOffset += len(line)
-		} else {
-			break
-		}
-	}
-
-	endOffset += len(lines) // To include newlines since they were trimmed off the end.
-
-	if startOffset > endOffset {
-		return nil, "", ErrEntryParseFailed{Path: path, Err: errors.New("could not find end offset of yaml front matter")}
-	}
-
-	yamlContent := content[startOffset:endOffset]
-	frontMatter := make(map[string]interface{})
-
-	err := yaml.Unmarshal([]byte(yamlContent), &frontMatter)
-	if err != nil {
-		return nil, "", ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not unmarshal yaml: %w", err)}
-	}
-
-	// Remove the front matter all newlines before actual contents start.
-	newContents := reFrontMatter.ReplaceAllString(content, "")
-	return frontMatter, newContents, nil
-}
-
-// parseTags returns a list of tags present in the document.
-func parseTags(path, content, builtinPrefix, customPrefix string) ([]string, error) {
-	reBuiltinPrefix, err := regexp.Compile(regexp.QuoteMeta(builtinPrefix) + "[\\w|-]+")
-	if err != nil {
-		return nil, ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not build builtin tag regex: %w", err)}
-	}
-
-	reCustomPrefix, err := regexp.Compile(regexp.QuoteMeta(customPrefix) + "[\\w|-]+")
-	if err != nil {
-		return nil, ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not build custom tag regex: %w", err)}
-	}
-
+// parseTags returns all the tags in the text. The prefixes are included.
+func (p Parser) parseTags(path, strippedContent string) ([]string, error) {
 	results := []string{}
 	// fmt.Fprintln(os.Stdout, "builtin MATCHES", reBuiltinPrefix.FindAllString(content, -1))
 
-	builtinMatches := reBuiltinPrefix.FindAllString(content, -1)
+	builtinMatches := p.reBuiltinTag.FindAllString(strippedContent, -1)
 	if builtinMatches != nil {
 		results = append(results, builtinMatches...)
 	}
 
-	customMatches := reCustomPrefix.FindAllString(content, -1)
+	customMatches := p.reCustomTag.FindAllString(strippedContent, -1)
 	if customMatches != nil {
 		results = append(results, customMatches...)
 	}
@@ -245,65 +234,111 @@ func parseTags(path, content, builtinPrefix, customPrefix string) ([]string, err
 	return results, nil
 }
 
-func parseExtendedMarkdown(path, content, dateFormat, builtinTagPrefix, customTagPrefix string) (*Entry, error) {
-	frontMatter, newContents, err := parseFrontMatter(path, content)
-	if err != nil {
-		return nil, err
+// parseLinks returns all the links present in the text.
+func (p Parser) parseLinks(path, strippedContent string) []Link {
+	var links []Link
+
+	titleNoNameLinks := p.parseLinksTitleNoName(path, strippedContent)
+	if titleNoNameLinks != nil {
+		links = append(links, titleNoNameLinks...)
 	}
 
-	entry := &Entry{Contents: newContents}
-
-	if frontMatter["title"] == nil {
-		initialSentence := reInitialSentence.FindString(newContents)
-		initialSentence = strings.Trim(initialSentence, ".!? ") // Remove ending punctuation
-
-		if initialSentence == "" {
-			return nil, ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not locate title as front matter or initial sentence")}
-		}
-
-		entry.Title = initialSentence
-	} else {
-		title, ok := frontMatter["title"].(string)
-		if !ok {
-			return nil, ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not convert 'title' key in front matter to string")}
-		}
-
-		entry.Title = title
+	titleWithNameLinks := p.parseLinksTitleWithName(path, strippedContent)
+	if titleWithNameLinks != nil {
+		links = append(links, titleWithNameLinks...)
 	}
 
-	if frontMatter["date"] == nil {
-		// TODO: logic to get date from text
-	} else {
-		dateString, ok := frontMatter["date"].(string)
-		if !ok {
-			return nil, ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not convert 'date' key in front matter to string")}
-		}
-
-		date, err := time.Parse(dateFormat, dateString)
-		if err != nil {
-			return nil, ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not parse date field with format '%s': %w", dateFormat, err)}
-		}
-
-		entry.Date = date
+	pathNoNameLinks := p.parseLinksPathNoName(path, strippedContent)
+	if pathNoNameLinks != nil {
+		links = append(links, pathNoNameLinks...)
 	}
 
-	if frontMatter["tags"] != nil {
-		tags, ok := frontMatter["tags"].([]string)
-		if !ok {
-			return nil, ErrEntryParseFailed{Path: path, Err: fmt.Errorf("could not convert 'tag' key in front matter to []string")}
-		}
-
-		entry.Tags = tags
+	pathWithNameLinks := p.parseLinksPathWithName(path, strippedContent)
+	if pathWithNameLinks != nil {
+		links = append(links, pathWithNameLinks...)
 	}
 
-	tags, err := parseTags(path, content, builtinTagPrefix, customTagPrefix)
-	if err != nil {
-		return nil, err
+	return links
+}
+
+func (p Parser) parseLinksTitleNoName(path, strippedContent string) []Link {
+	var links []Link
+	matches := reLinkTitleNoName.FindAllSubmatchIndex([]byte(strippedContent), -1)
+
+	// match is an []int
+	// [0] and [1] are the positions of the whole match.
+	// [2] and [3] are the positions of the title.
+	for _, match := range matches {
+		title := strippedContent[match[2]:match[3]]
+		links = append(links, Link{
+			Title: title,
+			Loc:   match[:2],
+			Type:  LinkTitleNoName,
+		})
 	}
 
-	if tags != nil {
-		entry.Tags = append(entry.Tags, tags...)
+	return links
+}
+
+func (p Parser) parseLinksTitleWithName(path, strippedContent string) []Link {
+	var links []Link
+	matches := reLinkTitleWithName.FindAllSubmatchIndex([]byte(strippedContent), -1)
+
+	// match is an []int
+	// [0] and [1] are the positions of the whole match.
+	// [2] and [3] are the positions of the title.
+	// [4] and [5] are the positions of the name of the link
+	for _, match := range matches {
+		title := strippedContent[match[2]:match[3]]
+		name := strippedContent[match[4]:match[5]]
+		links = append(links, Link{
+			Title: title,
+			Name:  name,
+			Loc:   match[:2],
+			Type:  LinkTitleWithName,
+		})
 	}
 
-	return entry, nil
+	return links
+}
+
+func (p Parser) parseLinksPathNoName(path, strippedContent string) []Link {
+	var links []Link
+	matches := reLinkPathNoName.FindAllSubmatchIndex([]byte(strippedContent), -1)
+
+	// match is an []int
+	// [0] and [1] are the positions of the whole match.
+	// [2] and [3] are the positions of the path.
+	for _, match := range matches {
+		path := strippedContent[match[2]:match[3]]
+		links = append(links, Link{
+			Path: path,
+			Loc:  match[:2],
+			Type: LinkPathNoName,
+		})
+	}
+
+	return links
+}
+
+func (p Parser) parseLinksPathWithName(path, strippedContent string) []Link {
+	var links []Link
+	matches := reLinkPathWithName.FindAllSubmatchIndex([]byte(strippedContent), -1)
+
+	// match is an []int
+	// [0] and [1] are the positions of the whole match.
+	// [2] and [3] are the positions of the path.
+	// [4] and [5] are the positions of the name of the link
+	for _, match := range matches {
+		path := strippedContent[match[2]:match[3]]
+		name := strippedContent[match[4]:match[5]]
+		links = append(links, Link{
+			Path: path,
+			Name: name,
+			Loc:  match[:2],
+			Type: LinkPathWithName,
+		})
+	}
+
+	return links
 }
