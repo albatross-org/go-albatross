@@ -14,10 +14,10 @@ type Entry struct {
 	Path string
 
 	// Contents is the contents of the file without front matter.
-	Contents string // The contents of the file, no front-matter.
+	Contents string
 
 	// Tags are all the tags present in the document. For example, "@!journal".
-	Tags []string // All tags present in the document.
+	Tags []string
 
 	// OutboundLinks are links going from this entry to another one.
 	// These are known when the entry is parsed.

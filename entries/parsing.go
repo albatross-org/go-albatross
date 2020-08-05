@@ -23,21 +23,21 @@ var (
 
 	// reLinkTitleNoName matches to links which specify only the other entry's title, e.g. "[[Pizza]]" or "[[Ice Cream]]"
 	// Group 1 is the title of the entry that is being linked to.
-	reLinkTitleNoName = regexp.MustCompile(`\[\[([\w\s\d]+)\]\]`)
+	reLinkTitleNoName = regexp.MustCompile(`\[\[([^\]]+)\]\]`)
 
 	// reLinkTitleWithName matches to links which specify the other entry's title and a name for the link, e.g. "[[Pizza](Shown title)]"
 	// Group 1 is the title of the entry that is being linked to.
 	// Group 2 is the name of the link.
-	reLinkTitleWithName = regexp.MustCompile(`\[\[([\w\s\d]+)\]\(([\w\s\d]+)\)\]`)
+	reLinkTitleWithName = regexp.MustCompile(`\[\[([^\]]+)\]\(([^\)]+)\)\]`)
 
 	// reLinkPathNoName matches to links which specify only the other entry's path, e.g. "{{food/pizza}}" or "{{food/ice-cream}}"
 	// Group 1 is the path of the entry being linked to.
-	reLinkPathNoName = regexp.MustCompile(`{{([\w\d/]+)}}`)
+	reLinkPathNoName = regexp.MustCompile(`{{([^\}]+)}}`)
 
 	// reLinkPathWithName matches to links which specify the other entry's path and a name for the link, e.g. "{{food/ice-cream}(Ice Cream)}"
 	// Group 1 is the path of the entry being linked to.
 	// Group 2 is the name of the link.
-	reLinkPathWithName = regexp.MustCompile(`{{([\w\d/]+)}\(([\w\s\d]+)\)}`)
+	reLinkPathWithName = regexp.MustCompile(`{{([^}]+)}\(([^)]+)\)}`)
 )
 
 // YAMLFrontMatter represents the normal YAML front matter at the start of an entry.
@@ -129,6 +129,7 @@ func (p Parser) Parse(path, content string) (*Entry, error) {
 	}
 
 	entry.Metadata = mapFrontMatter
+	entry.Contents = strippedContent
 	entry.Tags = append(entry.Tags, concrete.Tags...)
 
 	tags, err := p.parseTags(path, strippedContent)
