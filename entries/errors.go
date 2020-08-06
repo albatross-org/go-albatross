@@ -51,3 +51,15 @@ type ErrEntryDoesntExist struct {
 func (e ErrEntryDoesntExist) Error() string {
 	return fmt.Sprintf("entry '%s' (%s) doesnt exist", e.Title, e.Path)
 }
+
+// ErrEntryListOutOfBounds is returned by an Entry list when an attempt to get out of bounds data
+// is made.
+type ErrEntryListOutOfBounds struct {
+	Index int
+	Len   int
+}
+
+// Error returns a string representing the error.
+func (e ErrEntryListOutOfBounds) Error() string {
+	return fmt.Sprintf("entry list out of bounds access %d with length %d", e.Index, e.Len)
+}

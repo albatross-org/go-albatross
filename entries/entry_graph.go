@@ -1,10 +1,7 @@
 package entries
 
 import (
-	"bytes"
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/goccy/go-graphviz/cgraph"
 
@@ -169,44 +166,37 @@ func (graph *EntryGraph) RemoveInboundLinks(entry *Entry) {
 	}
 }
 
-// Graph gets the graphviz representation of the EntryGraph.
-// TODO: fix whatever this stupid thing is
-func (graph *EntryGraph) Graph() (*graphviz.Graphviz, error) {
+// Graph gets the graphviz representation of the EntryGraph, mainly for debugging and visualisation purposes.
+// TODO: this really isn't optimal.
+func (graph *EntryGraph) Graph() (*graphviz.Graphviz, *cgraph.Graph, error) {
 	g := graphviz.New()
 
-	viz, err := g.Graph()
+	viz, err := g.Graph(graphviz.StrictUnDirected)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create graphviz graph: %w", err)
+		return nil, nil, fmt.Errorf("couldn't create graphviz graph: %w", err)
 	}
 
-	pathNodeMap := make(map[*Entry]*cgraph.Node)
+	entryNodeMap := make(map[*Entry]*cgraph.Node)
 
 	for path, entry := range graph.pathMap {
 		n, err := viz.CreateNode(path)
 		if err != nil {
-			return nil, fmt.Errorf("couldn't create graphviz node: %w", err)
+			return nil, nil, fmt.Errorf("couldn't create graphviz node: %w", err)
 		}
 
-		pathNodeMap[entry] = n
+		entryNodeMap[entry] = n
 	}
 
-	for entry, node := range pathNodeMap {
-		for _, link := range entry.OutboundLinks {
-			e, err := viz.CreateEdge(fmt.Sprintf("%s => %s", entry.Path, link.Path), node, pathNodeMap[graph.pathMap[link.Path]])
+	for entry, node := range entryNodeMap {
+		for _, link := range entry.InboundLinks {
+			_, err := viz.CreateEdge(fmt.Sprintf("%s => %s", entry.Path, link.Path), node, entryNodeMap[link])
 			if err != nil {
-				return nil, fmt.Errorf("couldn't create graphviz edge: %w", err)
+				return nil, nil, fmt.Errorf("couldn't create graphviz edge: %w", err)
 			}
-			e.SetLabel(fmt.Sprintf("%s => %s", entry.Path, link.Path))
 		}
 	}
 
-	var buf bytes.Buffer
-	if err := g.Render(viz, "dot", &buf); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Fprintln(os.Stdout, buf.String())
-
-	return nil, nil
+	return g, viz, nil
 }
 
 // removeEntry is a helper function for removing an entry at a given index from a list of entries.

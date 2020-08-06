@@ -40,7 +40,9 @@ type Entry struct {
 // NewEntry returns a new Entry given a file system and a path to the `entry.md` file in that file system.
 // It will return an error if the entry cannot be read.
 func NewEntry(fs afero.Fs, path string) (*Entry, error) {
-	file, err := fs.Open(path)
+	contentPath := path + "/entry.md"
+
+	file, err := fs.Open(contentPath)
 	if err != nil {
 		return nil, ErrEntryReadFailed{Path: path, Err: err}
 	}
@@ -74,6 +76,8 @@ func NewEntry(fs afero.Fs, path string) (*Entry, error) {
 
 		entry.Date = stat.ModTime()
 	}
+
+	entry.Path = path
 
 	return entry, nil
 }
