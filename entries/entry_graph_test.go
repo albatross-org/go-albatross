@@ -59,7 +59,7 @@ func TestEntryGraphLinks(t *testing.T) {
 		Title:    "Pizza",
 		Contents: "I feel {{moods/hunger}(Hungry)} when I don't eat pizza.",
 		OutboundLinks: []Link{
-			Link{
+			{
 				Path:  "moods/hunger",
 				Title: "",
 				Name:  "Hungry",
