@@ -2,6 +2,7 @@ package entries
 
 import (
 	"strings"
+	"time"
 )
 
 // Filter is a function which filters an EntryGraph.
@@ -60,6 +61,7 @@ func FilterPathsExlude(paths ...string) func(*EntryGraph) error {
 }
 
 // FilterTitlesInclude only allows entries with the given titles.
+// This function matches full titles, not a substring.
 func FilterTitlesInclude(titles ...string) func(*EntryGraph) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := false
@@ -75,6 +77,7 @@ func FilterTitlesInclude(titles ...string) func(*EntryGraph) error {
 }
 
 // FilterTitlesExclude only allows entries that don't have the specified titles.
+// This function matches full titles, not a substring.
 func FilterTitlesExclude(titles ...string) func(*EntryGraph) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := true
@@ -153,4 +156,16 @@ func FilterMatchExclude(substrings ...string) func(*EntryGraph) error {
 	})
 }
 
-// TODO: implement FilterFrom and FilterUntil
+// FilterFrom will remove all entries before the given date.
+func FilterFrom(date time.Time) func(*EntryGraph) error {
+	return FilterEntryAllower(func(entry *Entry) bool {
+		return !entry.Date.Before(date)
+	})
+}
+
+// FilterUntil will remove all entries after the given date.
+func FilterUntil(date time.Time) func(*EntryGraph) error {
+	return FilterEntryAllower(func(entry *Entry) bool {
+		return !entry.Date.After(date)
+	})
+}
