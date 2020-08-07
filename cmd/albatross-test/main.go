@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	fs := entries.NewBaseFs("./test/stores/testing.albatross/entries")
+	fs := entries.NewBaseFs("./test/stores/testing.albatross.new/entries")
 
 	graph, entryErrs, err := entries.DirGraph(fs, "")
 	if err != nil {
@@ -33,3 +33,18 @@ func main() {
 		logrus.Fatal(err)
 	}
 }
+
+// func main() {
+// 	const publicKeyPath = "/home/olly/.config/albatross/keys/public.key"
+// 	const privateKeyPath = "/home/olly/.config/albatross/keys/private.key"
+
+// 	const originalPath = "/home/olly/code/go/src/github.com/albatross-org/go-albatross/test/stores/testing.albatross"
+// 	const decryptedPath = "/home/olly/code/go/src/github.com/albatross-org/go-albatross/test/stores/testing.albatross.new"
+// 	const encryptedPath = "/home/olly/code/go/src/github.com/albatross-org/go-albatross/test/stores/testing.albatross.gpg"
+
+// 	// err := encryption.EncryptDir(originalPath, encryptedPath, publicKeyPath)
+// 	err := encryption.DecryptDir(encryptedPath, decryptedPath, publicKeyPath, privateKeyPath)
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
+// }
