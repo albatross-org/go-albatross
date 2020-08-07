@@ -7,7 +7,7 @@ import (
 	. "github.com/stretchr/testify/assert"
 )
 
-func TestEntryListFromOffset(t *testing.T) {
+func TestListFromOffset(t *testing.T) {
 	entry1 := dummyEntry("food/pizza", "Pizza", "Pizza is great.")
 	entry2 := dummyEntry("food/ice-cream", "Ice Cream", "Ice cream is amazing.")
 	entry3 := dummyEntry("food/beans", "BEANS!", "BEANS!!!")
@@ -15,7 +15,7 @@ func TestEntryListFromOffset(t *testing.T) {
 	entry5 := dummyEntry("animals/whale", "Whales", "Whales. Oh, Whales!")
 	entry6 := dummyEntry("plants/sunflowers", "Sunflowers", "Pretty and sunny.")
 
-	list := EntryList{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
+	list := List{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
 
 	ts := []struct {
 		offset, n int
@@ -41,12 +41,12 @@ func TestEntryListFromOffset(t *testing.T) {
 		{
 			6, 1000,
 			[]*Entry{},
-			ErrEntryListOutOfBounds{6, 6},
+			ErrListOutOfBounds{6, 6},
 		},
 		{
 			12, 1000,
 			[]*Entry{},
-			ErrEntryListOutOfBounds{12, 6},
+			ErrListOutOfBounds{12, 6},
 		},
 	}
 
@@ -64,7 +64,7 @@ func TestEntryListFromOffset(t *testing.T) {
 	}
 }
 
-func TestEntryListFirstLast(t *testing.T) {
+func TestListFirstLast(t *testing.T) {
 	entry1 := dummyEntry("food/pizza", "Pizza", "Pizza is great.")
 	entry2 := dummyEntry("food/ice-cream", "Ice Cream", "Ice cream is amazing.")
 	entry3 := dummyEntry("food/beans", "BEANS!", "BEANS!!!")
@@ -72,7 +72,7 @@ func TestEntryListFirstLast(t *testing.T) {
 	entry5 := dummyEntry("animals/whale", "Whales", "Whales. Oh, Whales!")
 	entry6 := dummyEntry("plants/sunflowers", "Sunflowers", "Pretty and sunny.")
 
-	list := EntryList{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
+	list := List{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
 
 	newList := list.First(5).
 		Last(2)
@@ -85,7 +85,7 @@ func TestEntryListFirstLast(t *testing.T) {
 	Equal(t, entry5, newList.Slice()[1], "seconed entry in entry list should be entry5")
 }
 
-func TestEntryListSortAlpha(t *testing.T) {
+func TestListSortAlpha(t *testing.T) {
 	entry1 := dummyEntry("food/pizza", "Pizza", "Pizza is great.")               // 3
 	entry2 := dummyEntry("food/ice-cream", "Ice Cream", "Ice cream is amazing.") // 2
 	entry3 := dummyEntry("food/beans", "BEANS!", "BEANS!!!")                     // 1
@@ -93,7 +93,7 @@ func TestEntryListSortAlpha(t *testing.T) {
 	entry5 := dummyEntry("animals/whale", "Whales", "Whales. Oh, Whales!")       // 6
 	entry6 := dummyEntry("plants/sunflowers", "Sunflowers", "Pretty and sunny.") // 4
 
-	list := EntryList{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
+	list := List{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
 	sortedList := list.Sort(SortAlpha)
 
 	Equal(t, entry3, sortedList.Slice()[0], "alphabetical sort should have entry3 1st")
@@ -104,7 +104,7 @@ func TestEntryListSortAlpha(t *testing.T) {
 	Equal(t, entry5, sortedList.Slice()[5], "alphabetical sort should have entry5 6th")
 }
 
-func TestEntryListSortDate(t *testing.T) {
+func TestListSortDate(t *testing.T) {
 	entry1 := &Entry{Path: "food/pizza", Date: time.Date(2017, time.January, 0, 0, 0, 0, 0, &time.Location{})}        // 3
 	entry2 := &Entry{Path: "food/ice-cream", Date: time.Date(2016, time.January, 0, 0, 0, 0, 0, &time.Location{})}    // 2
 	entry3 := &Entry{Path: "food/beans", Date: time.Date(2015, time.January, 0, 0, 0, 0, 0, &time.Location{})}        // 1
@@ -112,7 +112,7 @@ func TestEntryListSortDate(t *testing.T) {
 	entry5 := &Entry{Path: "animals/whale", Date: time.Date(2019, time.January, 0, 0, 0, 0, 0, &time.Location{})}     // 5
 	entry6 := &Entry{Path: "plants/sunflowers", Date: time.Date(2018, time.January, 0, 0, 0, 0, 0, &time.Location{})} // 4
 
-	list := EntryList{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
+	list := List{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
 	sortedList := list.Sort(SortDate)
 
 	Equal(t, entry3, sortedList.Slice()[0], "alphabetical sort should have entry3 1st")
@@ -123,7 +123,7 @@ func TestEntryListSortDate(t *testing.T) {
 	Equal(t, entry4, sortedList.Slice()[5], "alphabetical sort should have entry5 6th")
 }
 
-func TestEntryListReverse(t *testing.T) {
+func TestListReverse(t *testing.T) {
 	entry1 := dummyEntry("food/pizza", "Pizza", "Pizza is great.")
 	entry2 := dummyEntry("food/ice-cream", "Ice Cream", "Ice cream is amazing.")
 	entry3 := dummyEntry("food/beans", "BEANS!", "BEANS!!!")
@@ -131,7 +131,7 @@ func TestEntryListReverse(t *testing.T) {
 	entry5 := dummyEntry("animals/whale", "Whales", "Whales. Oh, Whales!")
 	entry6 := dummyEntry("plants/sunflowers", "Sunflowers", "Pretty and sunny.")
 
-	list := EntryList{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
+	list := List{[]*Entry{entry1, entry2, entry3, entry4, entry5, entry6}}
 	reversedList := list.Reverse()
 
 	Equal(t, entry6, reversedList.Slice()[0], "alphabetical sort should have entry6 1st")

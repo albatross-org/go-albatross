@@ -5,8 +5,8 @@ import (
 	"unicode"
 )
 
-// EntryList is a list of entries.
-type EntryList struct {
+// List is a list of entries.
+type List struct {
 	list []*Entry
 }
 
@@ -16,59 +16,59 @@ func copyEntrySlice(slice []*Entry) []*Entry {
 
 // FromOffset returns n entries from a given offset.
 // If there aren't enough entries from offset, it will return as many as it can.
-// If offset is out of bounds, it will return an ErrEntryListOutOfbounds
-func (es EntryList) FromOffset(offset, n int) (EntryList, error) {
+// If offset is out of bounds, it will return an ErrListOutOfbounds
+func (es List) FromOffset(offset, n int) (List, error) {
 	if offset >= len(es.list) {
-		return EntryList{}, ErrEntryListOutOfBounds{offset, len(es.list)}
+		return List{}, ErrListOutOfBounds{offset, len(es.list)}
 	}
 
 	if offset+n > len(es.list) {
-		return EntryList{es.list[offset:]}, nil
+		return List{es.list[offset:]}, nil
 	}
 
-	return EntryList{es.list[offset : offset+n]}, nil
+	return List{es.list[offset : offset+n]}, nil
 }
 
 // First returns the first N entries in the list.
 // If there's not N entries, it will return as many as possible.
-func (es EntryList) First(n int) EntryList {
+func (es List) First(n int) List {
 	if n > len(es.list) {
-		return EntryList{copyEntrySlice(es.list)}
+		return List{copyEntrySlice(es.list)}
 	}
 
-	newEntryList, _ := es.FromOffset(0, n)
-	return newEntryList
+	newList, _ := es.FromOffset(0, n)
+	return newList
 }
 
 // Last returns the last N entries in the list.
 // If there's not N entries, it will return as many as possible.
-func (es EntryList) Last(n int) EntryList {
+func (es List) Last(n int) List {
 	if n > len(es.list) {
-		return EntryList{copyEntrySlice(es.list)}
+		return List{copyEntrySlice(es.list)}
 	}
 
-	newEntryList, _ := es.FromOffset(len(es.list)-n, n)
-	return newEntryList
+	newList, _ := es.FromOffset(len(es.list)-n, n)
+	return newList
 }
 
 // Slice returns the entries as a slice of *Entry.
-func (es EntryList) Slice() []*Entry {
+func (es List) Slice() []*Entry {
 	return copyEntrySlice(es.list)
 }
 
 // Reverse reverses an entry list.
-func (es EntryList) Reverse() EntryList {
+func (es List) Reverse() List {
 	newList := []*Entry{}
 
 	for i := range es.list {
 		newList = append(newList, es.list[len(es.list)-i-1])
 	}
 
-	return EntryList{newList}
+	return List{newList}
 }
 
-// Sort sorts an EntryList.
-func (es EntryList) Sort(sortType SortType) EntryList {
+// Sort sorts an List.
+func (es List) Sort(sortType SortType) List {
 	var sortable sort.Interface
 	var entries = copyEntrySlice(es.list)
 
@@ -81,10 +81,10 @@ func (es EntryList) Sort(sortType SortType) EntryList {
 
 	sort.Sort(sortable)
 
-	return EntryList{list: entries}
+	return List{list: entries}
 }
 
-// SortType is the method used to sort an EntryList.
+// SortType is the method used to sort an List.
 type SortType int
 
 const (

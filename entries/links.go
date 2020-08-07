@@ -23,6 +23,9 @@ const (
 
 // Link represents an outbound link from one Entry to another.
 type Link struct {
+	// Parent is the entry that is being linked from.
+	Parent *Entry
+
 	// Path is the path to the entry being linked to. This is blank if it's a title link.
 	Path string
 

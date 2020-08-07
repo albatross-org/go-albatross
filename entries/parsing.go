@@ -19,7 +19,7 @@ var (
 	reInitialNewlines = regexp.MustCompile("^\n+")
 
 	// reInitialSentence matches to the first sentence in a string.
-	reInitialSentence = regexp.MustCompile("^(.*?)[\\.!\\?](?:\\s|$)")
+	reInitialSentence = regexp.MustCompile("^(.*?)[\\.!\\?\\n](?:\\s|$)")
 
 	// reLinkTitleNoName matches to links which specify only the other entry's title, e.g. "[[Pizza]]" or "[[Ice Cream]]"
 	// Group 1 is the title of the entry that is being linked to.
@@ -139,6 +139,9 @@ func (p Parser) Parse(path, content string) (*Entry, error) {
 
 	entry.Tags = append(entry.Tags, tags...)
 	entry.OutboundLinks = p.parseLinks(path, strippedContent)
+	for i := range entry.OutboundLinks {
+		entry.OutboundLinks[i].Parent = entry
+	}
 
 	return entry, nil
 }
@@ -206,9 +209,14 @@ func (p Parser) parseFrontMatterMap(path, frontMatter string) (map[string]interf
 
 // getFirstSentence returns the first sentence from the entry text. This is used to get an alternate title if
 // no other is available.
+// This function will remove an ending full stop, but no other pieces of punctuation. This is a stylistic choice, for example:
+//   "A Day At A Restaurant." => "A Day At A Restaurant", "A Day At A Restaurant!!" => "A Day At A Restaurant!!"
+// It will also remove trailing newlines.
 func (p Parser) getFirstSentence(path, strippedContent string) (string, error) {
 	initialSentence := reInitialSentence.FindString(strippedContent)
-	initialSentence = strings.Trim(initialSentence, ".!? ") // Remove ending punctuation
+
+	initialSentence = strings.Trim(initialSentence, "\n")
+	initialSentence = strings.Trim(initialSentence, ".")
 
 	if initialSentence == "" {
 		return "", p.err(path, "could not locate title as front matter or initial sentence")

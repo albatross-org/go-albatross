@@ -10,26 +10,17 @@ import (
 func main() {
 	fs := entries.NewBaseFs("./test/stores/testing.albatross/entries")
 
-	entryPizza, err := entries.NewEntry(fs, "food/pizza")
+	graph, entryErrs, err := entries.DirGraph(fs, "")
 	if err != nil {
 		logrus.Fatal(err)
 	}
 
-	entryIceCream, err := entries.NewEntry(fs, "food/ice-cream")
-	if err != nil {
-		logrus.Fatal(err)
-	}
+	if len(entryErrs) != 0 {
+		for _, err := range entryErrs {
+			logrus.Error(err)
+		}
 
-	entryHunger, err := entries.NewEntry(fs, "moods/hunger")
-	if err != nil {
-		logrus.Fatal(err)
-	}
-
-	graph := entries.NewEntryGraph()
-
-	err = graph.AddMany(entryPizza, entryIceCream, entryHunger)
-	if err != nil {
-		logrus.Fatal(err)
+		logrus.Fatal("wasn't expecting entry errs")
 	}
 
 	g, viz, err := graph.Graph()

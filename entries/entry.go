@@ -3,6 +3,7 @@ package entries
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/spf13/afero"
@@ -23,10 +24,6 @@ type Entry struct {
 	// These are known when the entry is parsed.
 	OutboundLinks []Link
 
-	// InboundLinks are links coming from a different entry to this one.
-	// These are known when the entry is added to an EntryGraph.
-	InboundLinks []*Entry
-
 	// Date extracted from the entry.
 	Date time.Time
 
@@ -37,12 +34,12 @@ type Entry struct {
 	Metadata map[string]interface{}
 }
 
-// NewEntry returns a new Entry given a file system and a path to the `entry.md` file in that file system.
+// NewEntryFromFile returns a new Entry given a file system and a path to the `entry.md` file in that file system.
 // It will return an error if the entry cannot be read.
-func NewEntry(fs afero.Fs, path string) (*Entry, error) {
-	contentPath := path + "/entry.md"
+func NewEntryFromFile(fs afero.Fs, originalPath string) (*Entry, error) {
+	path := strings.TrimSuffix(originalPath, "/entry.md")
 
-	file, err := fs.Open(contentPath)
+	file, err := fs.Open(originalPath)
 	if err != nil {
 		return nil, ErrEntryReadFailed{Path: path, Err: err}
 	}

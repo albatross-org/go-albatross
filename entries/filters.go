@@ -5,12 +5,12 @@ import (
 	"time"
 )
 
-// Filter is a function which filters an EntryGraph.
-type Filter func(*EntryGraph) error
+// Filter is a function which filters an Collection.
+type Filter func(*Collection) error
 
 // FilterEntryAllower takes a function which returns true or false depending on whether the entry is allowd.
 func FilterEntryAllower(allower func(*Entry) bool) Filter {
-	return func(graph *EntryGraph) error {
+	return func(graph *Collection) error {
 		remove := []*Entry{}
 
 		for _, entry := range graph.pathMap {
@@ -46,7 +46,7 @@ func FilterPathsInclude(paths ...string) Filter {
 }
 
 // FilterPathsExlude will remove all entries from the given paths.
-func FilterPathsExlude(paths ...string) func(*EntryGraph) error {
+func FilterPathsExlude(paths ...string) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := true
 		for _, path := range paths {
@@ -62,7 +62,7 @@ func FilterPathsExlude(paths ...string) func(*EntryGraph) error {
 
 // FilterTitlesInclude only allows entries with the given titles.
 // This function matches full titles, not a substring.
-func FilterTitlesInclude(titles ...string) func(*EntryGraph) error {
+func FilterTitlesInclude(titles ...string) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := false
 		for _, title := range titles {
@@ -78,7 +78,7 @@ func FilterTitlesInclude(titles ...string) func(*EntryGraph) error {
 
 // FilterTitlesExclude only allows entries that don't have the specified titles.
 // This function matches full titles, not a substring.
-func FilterTitlesExclude(titles ...string) func(*EntryGraph) error {
+func FilterTitlesExclude(titles ...string) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := true
 		for _, title := range titles {
@@ -93,7 +93,7 @@ func FilterTitlesExclude(titles ...string) func(*EntryGraph) error {
 }
 
 // FilterTagsInclude only allows entries with the given tags.
-func FilterTagsInclude(tags ...string) func(*EntryGraph) error {
+func FilterTagsInclude(tags ...string) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := false
 		for _, tag := range tags {
@@ -110,7 +110,7 @@ func FilterTagsInclude(tags ...string) func(*EntryGraph) error {
 }
 
 // FilterTagsExclude only allows entries that don't have the specified tags.
-func FilterTagsExclude(tags ...string) func(*EntryGraph) error {
+func FilterTagsExclude(tags ...string) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := true
 		for _, tag := range tags {
@@ -142,7 +142,7 @@ func FilterMatchInclude(substrings ...string) Filter {
 }
 
 // FilterMatchExclude will allow entries that don't have the specified substrings.
-func FilterMatchExclude(substrings ...string) func(*EntryGraph) error {
+func FilterMatchExclude(substrings ...string) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		allowed := true
 		for _, substring := range substrings {
@@ -157,14 +157,14 @@ func FilterMatchExclude(substrings ...string) func(*EntryGraph) error {
 }
 
 // FilterFrom will remove all entries before the given date.
-func FilterFrom(date time.Time) func(*EntryGraph) error {
+func FilterFrom(date time.Time) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		return !entry.Date.Before(date)
 	})
 }
 
 // FilterUntil will remove all entries after the given date.
-func FilterUntil(date time.Time) func(*EntryGraph) error {
+func FilterUntil(date time.Time) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {
 		return !entry.Date.After(date)
 	})
