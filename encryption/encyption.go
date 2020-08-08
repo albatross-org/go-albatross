@@ -37,13 +37,13 @@ func EncryptDir(dirPath, newDirPath, pathToPublicKey string) error {
 // DecryptDir takes the path to an encrypted directory and decrypts it using the private key specified.
 // It will write the decrypted directory to newDirPath.
 //   pgp -> gzip -> tar
-func DecryptDir(dirPath, newDirPath, pathToPublicKey, pathToPrivateKey string) error {
+func DecryptDir(dirPath, newDirPath, pathToPublicKey, pathToPrivateKey, password string) error {
 	f, err := os.Open(dirPath)
 	if err != nil {
 		return fmt.Errorf("error reading encrypted directory %s: %w", dirPath, err)
 	}
 
-	decrypted, err := decrypt(pathToPublicKey, pathToPrivateKey, f)
+	decrypted, err := decrypt(pathToPublicKey, pathToPrivateKey, password, f)
 	if err != nil {
 		return fmt.Errorf("error decrypting %s: %w", dirPath, err)
 	}
@@ -87,7 +87,7 @@ func encrypt(publicKeyPath string, src io.Reader) ([]byte, error) {
 	return encrypted, nil
 }
 
-func decrypt(publicKeyPath, privateKeyPath string, src io.Reader) ([]byte, error) {
+func decrypt(publicKeyPath, privateKeyPath, password string, src io.Reader) ([]byte, error) {
 	publicKey, err := ioutil.ReadFile(publicKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading public key file: %w", err)
@@ -103,11 +103,7 @@ func decrypt(publicKeyPath, privateKeyPath string, src io.Reader) ([]byte, error
 		return nil, fmt.Errorf("error creating private key entity: %w", err)
 	}
 
-	pass, err := GetPassword()
-	if err != nil {
-		return nil, err
-	}
-	err = privEntity.PrivateKey.Decrypt([]byte(pass))
+	err = privEntity.PrivateKey.Decrypt([]byte(password))
 	if err != nil {
 		return nil, ErrPrivateKeyDecryptionFailed{PathToPrivateKey: privateKeyPath, Err: err}
 	}
