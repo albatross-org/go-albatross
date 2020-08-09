@@ -2,11 +2,10 @@ package core
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
-
-	"github.com/spf13/afero"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -19,9 +18,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Fs is the file system.
-var Fs = afero.NewOsFs()
-
 // Store represents an Albatross store.
 type Store struct {
 	Path string
@@ -29,10 +25,9 @@ type Store struct {
 	entriesPath string
 	configPath  string
 
-	coll      *entries.Collection
-	repo      *git.Repository
-	worktree  *git.Worktree
-	entriesFs afero.Fs
+	coll     *entries.Collection
+	repo     *git.Repository
+	worktree *git.Worktree
 
 	config *viper.Viper
 }
@@ -43,7 +38,6 @@ func Load(path string) (*Store, error) {
 
 	s.entriesPath = filepath.Join(path, "entries")
 	s.configPath = filepath.Join(path, "config.yaml")
-	s.entriesFs = afero.NewBasePathFs(Fs, s.entriesPath)
 
 	config, err := parseConfigFile(s.configPath)
 	if err != nil {
@@ -69,22 +63,13 @@ func Load(path string) (*Store, error) {
 
 // Encrypted returns true or false depending on whether the store is encrypted or decrypted.
 func (s *Store) Encrypted() (bool, error) {
-	_, err := Fs.Stat(s.entriesPath)
+	_, err := os.Stat(s.entriesPath)
 	if err == nil {
 		return false, nil
 	}
 
 	encryptedPath := s.entriesPath + ".gpg"
-	if bs, ok := Fs.(*afero.BasePathFs); ok {
-		fmt.Println("hello")
-		path, err := bs.RealPath(encryptedPath)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		fmt.Println(path)
-	}
-	_, err = Fs.Stat(encryptedPath)
+	_, err = os.Stat(encryptedPath)
 	if err != nil {
 		return false, fmt.Errorf("cannot read path specified: %s", err)
 	}
@@ -129,9 +114,7 @@ func (s *Store) Encrypt() error {
 		return err
 	}
 
-	s.entriesFs = nil
-
-	return Fs.RemoveAll(s.entriesPath)
+	return os.RemoveAll(s.entriesPath)
 }
 
 // Decrypt decrypts the store. If the store is already decrypted, it will return ErrStoreDecrypted.
@@ -161,9 +144,7 @@ func (s *Store) Decrypt(passwordFunc func() (string, error)) error {
 		return err
 	}
 
-	s.entriesFs = afero.NewBasePathFs(Fs, s.entriesPath)
-
-	return Fs.RemoveAll(s.entriesPath + ".gpg")
+	return os.RemoveAll(s.entriesPath + ".gpg")
 }
 
 // Create creates a new entry in the store. If the store is encrypted, it returns ErrStoreEncrypted.
@@ -176,20 +157,22 @@ func (s *Store) Create(path, content string) error {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
 
+	path = filepath.Join(s.entriesPath, path)
+
 	entryPath := filepath.Join(path, "entry.md")
-	if exists(s.entriesFs, entryPath) {
+	if exists(entryPath) {
 		return ErrEntryAlreadyExists{path}
 	}
 
-	_, err = s.entriesFs.Stat(path)
+	_, err = os.Stat(path)
 	if err != nil {
-		err = s.entriesFs.MkdirAll(path, 0755)
+		err = os.MkdirAll(path, 0755)
 		if err != nil {
 			return err
 		}
 	}
 
-	err = afero.WriteFile(s.entriesFs, entryPath, []byte(content), 0644)
+	err = ioutil.WriteFile(entryPath, []byte(content), 0644)
 	if err != nil {
 		return err
 	}
@@ -211,13 +194,14 @@ func (s *Store) Update(path, content string) error {
 	} else if encrypted {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
+	path = filepath.Join(s.entriesPath, path)
 
 	entryPath := filepath.Join(path, "entry.md")
-	if !exists(s.entriesFs, entryPath) {
+	if !exists(entryPath) {
 		return ErrEntryDoesntExist{path}
 	}
 
-	err = afero.WriteFile(s.entriesFs, entryPath, []byte(content), 0644)
+	err = ioutil.WriteFile(entryPath, []byte(content), 0644)
 	if err != nil {
 		return err
 	}
@@ -241,22 +225,24 @@ func (s *Store) Attach(path, attachmentPath string) error {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
 
+	path = filepath.Join(s.entriesPath, path)
+
 	entryPath := filepath.Join(path, "entry.md")
-	if !exists(s.entriesFs, entryPath) {
+	if !exists(entryPath) {
 		return ErrEntryDoesntExist{path}
 	}
 
-	stat, err := Fs.Stat(attachmentPath)
+	stat, err := os.Stat(attachmentPath)
 	if err != nil {
 		return fmt.Errorf("attachment %s doesn't exist", attachmentPath)
 	}
 
 	attachmentDestinationPath := filepath.Join(path, stat.Name())
-	if exists(s.entriesFs, attachmentDestinationPath) {
+	if exists(attachmentDestinationPath) {
 		return fmt.Errorf("cannot attach file %s to %s, file already exists", attachmentPath, attachmentDestinationPath)
 	}
 
-	err = copyFile(attachmentPath, filepath.Join(s.entriesPath, attachmentDestinationPath))
+	err = copyFile(attachmentPath, attachmentDestinationPath)
 	if err != nil {
 		return fmt.Errorf("cannot copy attachment from %s to %s: %w", attachmentPath, attachmentDestinationPath, err)
 	}
@@ -284,8 +270,10 @@ func (s *Store) Delete(path string) error {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
 
+	path = filepath.Join(s.entriesPath, path)
+
 	entryPath := filepath.Join(path, "entry.md")
-	if !exists(s.entriesFs, entryPath) {
+	if !exists(entryPath) {
 		return ErrEntryDoesntExist{path}
 	}
 
@@ -293,14 +281,14 @@ func (s *Store) Delete(path string) error {
 
 	// Here we go through all the files and directories in the path given.
 	// containsSubEntries will be set to true if the entry itself contains other entries nested in subdirectories.
-	err = afero.Walk(s.entriesFs, path, func(subpath string, info os.FileInfo, err error) error {
+	err = filepath.Walk(path, func(subpath string, info os.FileInfo, err error) error {
 		if info.IsDir() && subpath != path {
 			containsSubEntries = true
 			return filepath.SkipDir
 		}
 
 		if !info.IsDir() {
-			return s.entriesFs.Remove(subpath)
+			return os.Remove(subpath)
 		}
 
 		return nil
@@ -310,7 +298,7 @@ func (s *Store) Delete(path string) error {
 	}
 
 	if !containsSubEntries {
-		err = s.entriesFs.Remove(path)
+		err = os.Remove(path)
 		if err != nil {
 			return err
 		}
@@ -328,7 +316,7 @@ func (s *Store) Delete(path string) error {
 
 // load loads the Collection and in-memory git repository contained within the Store.
 func (s *Store) load() error {
-	collection, entryErrs, err := entries.DirGraph(s.entriesFs, "")
+	collection, entryErrs, err := entries.DirGraph(s.entriesPath)
 	if err != nil {
 		return err
 	}

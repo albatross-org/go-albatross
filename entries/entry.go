@@ -3,10 +3,9 @@ package entries
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
-
-	"github.com/spf13/afero"
 )
 
 // Entry represents a parsed `entry.md` file.
@@ -36,10 +35,10 @@ type Entry struct {
 
 // NewEntryFromFile returns a new Entry given a file system and a path to the `entry.md` file in that file system.
 // It will return an error if the entry cannot be read.
-func NewEntryFromFile(fs afero.Fs, originalPath string) (*Entry, error) {
+func NewEntryFromFile(originalPath string) (*Entry, error) {
 	path := strings.TrimSuffix(originalPath, "/entry.md")
 
-	file, err := fs.Open(originalPath)
+	file, err := os.Open(originalPath)
 	if err != nil {
 		return nil, ErrEntryReadFailed{Path: path, Err: err}
 	}

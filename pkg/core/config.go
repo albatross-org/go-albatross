@@ -40,7 +40,7 @@ func parseConfigFile(path string) (*viper.Viper, error) {
 	v.SetDefault("encryption.public-key", defaultPublicKeyPath)
 	v.SetDefault("encryption.private-key", defaultPrivateKeyPath)
 
-	f, err := Fs.Open(path)
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}

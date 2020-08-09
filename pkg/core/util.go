@@ -2,14 +2,13 @@ package core
 
 import (
 	"io"
-
-	"github.com/spf13/afero"
+	"os"
 )
 
 // isEmpty returns true if the directory given is empty.
 // Thanks to https://stackoverflow.com/questions/30697324/how-to-check-if-directory-on-path-is-empty
-func isEmpty(fs afero.Fs, name string) (bool, error) {
-	f, err := fs.Open(name)
+func isEmpty(name string) (bool, error) {
+	f, err := os.Open(name)
 	if err != nil {
 		return false, err
 	}
@@ -23,19 +22,19 @@ func isEmpty(fs afero.Fs, name string) (bool, error) {
 }
 
 // exists returns true if the given file exists in a file system.
-func exists(fs afero.Fs, name string) bool {
-	_, err := fs.Stat(name)
+func exists(name string) bool {
+	_, err := os.Stat(name)
 	return err == nil
 }
 
 // copyFile copies a file from one location to the given destination.
 func copyFile(source, dest string) error {
-	sourceFile, err := Fs.Open(source)
+	sourceFile, err := os.Open(source)
 	if err != nil {
 		return err
 	}
 
-	destFile, err := Fs.Create(dest)
+	destFile, err := os.Create(dest)
 	if err != nil {
 		return err
 	}
