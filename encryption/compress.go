@@ -8,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/spf13/afero"
 )
 
 // compress takes a source and variable writers and walks 'source' writing each file
@@ -19,7 +17,7 @@ import (
 func compress(src string, writers ...io.Writer) error {
 
 	// ensure the src actually exists before trying to tar it
-	if _, err := Fs.Stat(src); err != nil {
+	if _, err := os.Stat(src); err != nil {
 		return fmt.Errorf("Unable to tar files - %v", err.Error())
 	}
 
@@ -32,7 +30,7 @@ func compress(src string, writers ...io.Writer) error {
 	defer tw.Close()
 
 	// walk path
-	return afero.Walk(Fs, src, func(file string, fi os.FileInfo, err error) error {
+	return filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
 
 		// return on any error
 		if err != nil {
@@ -59,7 +57,7 @@ func compress(src string, writers ...io.Writer) error {
 		}
 
 		// open files for taring
-		f, err := Fs.Open(file)
+		f, err := os.Open(file)
 		if err != nil {
 			return err
 		}
@@ -116,8 +114,8 @@ func uncompress(r io.Reader, dst string) error {
 
 		// if its a dir and it doesn't exist create it
 		case tar.TypeDir:
-			if _, err := Fs.Stat(target); err != nil {
-				if err := Fs.MkdirAll(target, 0755); err != nil {
+			if _, err := os.Stat(target); err != nil {
+				if err := os.MkdirAll(target, 0755); err != nil {
 					return err
 				}
 			}
@@ -126,14 +124,14 @@ func uncompress(r io.Reader, dst string) error {
 		case tar.TypeReg:
 			// if the subdirectory the file is in doesn't exist then create it
 			dir, _ := filepath.Split(target)
-			if _, err := Fs.Stat(dir); err != nil {
-				if err := Fs.MkdirAll(dir, 0755); err != nil {
+			if _, err := os.Stat(dir); err != nil {
+				if err := os.MkdirAll(dir, 0755); err != nil {
 					return err
 				}
 			}
 
 			// create the file
-			f, err := Fs.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			f, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
 			if err != nil {
 				return err
 			}
