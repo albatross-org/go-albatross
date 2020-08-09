@@ -69,18 +69,27 @@ func Load(path string) (*Store, error) {
 
 // Encrypted returns true or false depending on whether the store is encrypted or decrypted.
 func (s *Store) Encrypted() (bool, error) {
-	stat, err := Fs.Stat(s.entriesPath)
+	_, err := Fs.Stat(s.entriesPath)
 	if err == nil {
-		return !stat.IsDir(), nil
+		return false, nil
 	}
 
 	encryptedPath := s.entriesPath + ".gpg"
-	stat, err = Fs.Stat(encryptedPath)
+	if bs, ok := Fs.(*afero.BasePathFs); ok {
+		fmt.Println("hello")
+		path, err := bs.RealPath(encryptedPath)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		fmt.Println(path)
+	}
+	_, err = Fs.Stat(encryptedPath)
 	if err != nil {
-		return false, fmt.Errorf("cannot read path specified: %w", err)
+		return false, fmt.Errorf("cannot read path specified: %s", err)
 	}
 
-	return !stat.IsDir(), nil
+	return true, nil
 }
 
 // Collection returns the *entries.Collection for the store. It will give an error if the store is currently encrypted.
@@ -285,8 +294,6 @@ func (s *Store) Delete(path string) error {
 	// Here we go through all the files and directories in the path given.
 	// containsSubEntries will be set to true if the entry itself contains other entries nested in subdirectories.
 	err = afero.Walk(s.entriesFs, path, func(subpath string, info os.FileInfo, err error) error {
-		fmt.Println(subpath)
-
 		if info.IsDir() && subpath != path {
 			containsSubEntries = true
 			return filepath.SkipDir
@@ -321,7 +328,7 @@ func (s *Store) Delete(path string) error {
 
 // load loads the Collection and in-memory git repository contained within the Store.
 func (s *Store) load() error {
-	collection, entryErrs, err := entries.DirGraph(entries.NewBaseFs(s.entriesPath), "")
+	collection, entryErrs, err := entries.DirGraph(s.entriesFs, "")
 	if err != nil {
 		return err
 	}

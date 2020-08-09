@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
+
+	"github.com/spf13/afero"
 
 	"github.com/jchavannes/go-pgp/pgp"
 )
+
+// Fs represents the file system. It's done this way to enable testing in memory
+var Fs = afero.NewOsFs()
 
 // EncryptDir takes the path to a directory an encrypts it using the public key specified.
 // It will write out an encrypted file to newDirPath.
@@ -26,7 +30,7 @@ func EncryptDir(dirPath, newDirPath, pathToPublicKey string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(newDirPath, encypted, 0644)
+	err = afero.WriteFile(Fs, newDirPath, encypted, 0644)
 	if err != nil {
 		return fmt.Errorf("error writing encrypted file '%s': %w", newDirPath, err)
 	}
@@ -38,7 +42,7 @@ func EncryptDir(dirPath, newDirPath, pathToPublicKey string) error {
 // It will write the decrypted directory to newDirPath.
 //   pgp -> gzip -> tar
 func DecryptDir(dirPath, newDirPath, pathToPublicKey, pathToPrivateKey, password string) error {
-	f, err := os.Open(dirPath)
+	f, err := Fs.Open(dirPath)
 	if err != nil {
 		return fmt.Errorf("error reading encrypted directory %s: %w", dirPath, err)
 	}
@@ -88,12 +92,12 @@ func encrypt(publicKeyPath string, src io.Reader) ([]byte, error) {
 }
 
 func decrypt(publicKeyPath, privateKeyPath, password string, src io.Reader) ([]byte, error) {
-	publicKey, err := ioutil.ReadFile(publicKeyPath)
+	publicKey, err := afero.ReadFile(Fs, publicKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading public key file: %w", err)
 	}
 
-	privateKey, err := ioutil.ReadFile(privateKeyPath)
+	privateKey, err := afero.ReadFile(Fs, privateKeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading private key file: %w", err)
 	}

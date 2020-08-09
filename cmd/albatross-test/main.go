@@ -52,7 +52,7 @@ import (
 
 // Store locations.
 var (
-	TestStore    = "/home/olly/code/go/src/github.com/albatross-org/go-albatross/test/stores/testing.albatross"
+	TestStore    = "/home/olly/code/go/src/github.com/albatross-org/go-albatross/pkg/core/testdata/stores/testing.albatross"
 	DefaultStore = "/home/olly/.local/share/albatross/default"
 )
 
@@ -75,7 +75,7 @@ This is an entry all about truffles. I love truffles so much, but they are a bit
 	}
 
 	fmt.Println("Attaching truffle photo...")
-	err = store.Attach("food/truffles", "/home/olly/downloads/truffle.jpg")
+	err = store.Attach("food/truffles", "/home/olly/code/go/src/github.com/albatross-org/go-albatross/pkg/core/testdata/truffle.jpg")
 	if err != nil {
 		logrus.Fatal(err)
 	}

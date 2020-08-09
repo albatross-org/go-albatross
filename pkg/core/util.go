@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/spf13/afero"
@@ -26,7 +25,6 @@ func isEmpty(fs afero.Fs, name string) (bool, error) {
 // exists returns true if the given file exists in a file system.
 func exists(fs afero.Fs, name string) bool {
 	_, err := fs.Stat(name)
-	fmt.Println(err, name)
 	return err == nil
 }
 
