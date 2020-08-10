@@ -38,11 +38,11 @@ func staticPassword(pass string) func() (string, error) {
 	}
 }
 
-func TestStoreLoad(t *testing.T) {
+func TestStoreFull(t *testing.T) {
 	dir, cleanup := tempTestDir(t)
-	// defer cleanup()
-	_ = cleanup
-	t.Logf(dir)
+	defer cleanup()
+
+	t.Logf("Temporary test dir: %s", dir)
 
 	store, err := Load(filepath.Join(dir, "testdata", "stores", "testing.albatross"))
 	Nil(t, err, "not expecting error when loading test store")

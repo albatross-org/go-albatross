@@ -45,7 +45,7 @@ func DecryptDir(dirPath, newDirPath, pathToPublicKey, pathToPrivateKey, password
 
 	decrypted, err := decrypt(pathToPublicKey, pathToPrivateKey, password, f)
 	if err != nil {
-		return fmt.Errorf("error decrypting %s: %w", dirPath, err)
+		return err
 	}
 
 	var buf bytes.Buffer
