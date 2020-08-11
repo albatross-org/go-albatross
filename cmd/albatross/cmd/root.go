@@ -17,6 +17,7 @@ import (
 
 var cfgFile string
 var logLvl string
+var leaveDecrypted bool
 
 var storeName string
 var storePath string
@@ -86,6 +87,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/albatross/config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&logLvl, "level", "info", "logging level (trace, debug, info, warning, error, fatal, panic)")
 	rootCmd.PersistentFlags().StringVar(&storeName, "store", "default", "store to use, as defined in config file (e.g. default, thesis)")
+	rootCmd.PersistentFlags().BoolVarP(&leaveDecrypted, "leave-decrypted", "l", false, "whether to leave the store decrypted or encrypt it again after decrypting it")
 }
 
 // getConfigDirectory gets the configuration directory that should be used for the program.

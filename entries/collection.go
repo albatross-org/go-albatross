@@ -205,6 +205,16 @@ func (collection *Collection) Graph() (*graphviz.Graphviz, *cgraph.Graph, error)
 	return g, viz, nil
 }
 
+// List converts the collection into an List.
+func (collection *Collection) List() List {
+	l := []*Entry{}
+	for _, entry := range collection.pathMap {
+		l = append(l, entry)
+	}
+
+	return List{l}
+}
+
 // removeEntry is a helper function for removing an entry at a given index from a list of entries.
 func removeEntry(es []*Entry, i int) []*Entry {
 	es[i] = es[len(es)-1]

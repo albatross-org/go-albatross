@@ -130,6 +130,7 @@ func (p Parser) Parse(path, content string) (*Entry, error) {
 
 	entry.Metadata = mapFrontMatter
 	entry.Contents = strippedContent
+	entry.OriginalContents = content
 	entry.Tags = append(entry.Tags, concrete.Tags...)
 
 	tags, err := p.parseTags(path, strippedContent)
@@ -155,22 +156,8 @@ func (p Parser) extractFrontMatter(path, content string) (frontMatter string, st
 		return "", strippedContent, nil
 	}
 
-	lines := strings.Split(content, "\n")
-
-	startOffset := 4 // "---\n", the byte offset of where the YAML starts.
-	endOffset := 0   // The byte offset of where the YAML ends.
-
-	// Iterate through the lines, skipping the first one as that is the opening
-	// endOffset is initialised to 4 since we skip the inital line
-	for _, line := range lines[1:] {
-		if line != "---" {
-			endOffset += len(line)
-		} else {
-			break
-		}
-	}
-
-	endOffset += len(lines) // To include newlines since they were trimmed off the end.
+	startOffset := strings.Index(content, "---") + 4
+	endOffset := strings.LastIndex(content, "---")
 
 	if startOffset > endOffset {
 		return "", "", p.err(path, "could not find end offset of yaml front matter")

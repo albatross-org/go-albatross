@@ -16,6 +16,9 @@ type Entry struct {
 	// Contents is the contents of the file without front matter.
 	Contents string
 
+	// OriginalContents is the contents of the file with the front matter.
+	OriginalContents string
+
 	// Tags are all the tags present in the document. For example, "@!journal".
 	Tags []string
 
@@ -73,6 +76,16 @@ func NewEntryFromFile(originalPath string) (*Entry, error) {
 		entry.Date = stat.ModTime()
 	}
 
+	// Here we strip the path to the store itselft from the store.
+	// This means something like:
+	// "/home/user/.local/share/albatross/default/entries/journal/2020/04/10"
+	// becomes
+	// "journal/2020/04/10"
+	// Which is the format used by the rest of the program.
+	start := strings.Index(path, "entries")
+	if start != -1 {
+		path = path[start+8:]
+	}
 	entry.Path = path
 
 	return entry, nil

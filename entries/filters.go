@@ -45,6 +45,21 @@ func FilterPathsInclude(paths ...string) Filter {
 	})
 }
 
+// FilterPathsExact will allow only an entry with the given path.
+func FilterPathsExact(paths ...string) Filter {
+	return FilterEntryAllower(func(entry *Entry) bool {
+		allowed := false
+		for _, path := range paths {
+			if entry.Path == path {
+				allowed = true
+				break
+			}
+		}
+
+		return allowed
+	})
+}
+
 // FilterPathsExlude will remove all entries from the given paths.
 func FilterPathsExlude(paths ...string) func(*Collection) error {
 	return FilterEntryAllower(func(entry *Entry) bool {

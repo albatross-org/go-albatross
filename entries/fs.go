@@ -39,5 +39,5 @@ func DirGraph(path string) (graph *Collection, entryErrs []error, err error) {
 		return nil, entryErrs, err
 	}
 
-	return graph, nil, nil
+	return graph, entryErrs, nil
 }

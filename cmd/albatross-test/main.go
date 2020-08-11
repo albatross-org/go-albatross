@@ -1,13 +1,5 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/albatross-org/go-albatross/encryption"
-	"github.com/albatross-org/go-albatross/pkg/core"
-	"github.com/sirupsen/logrus"
-)
-
 // func main() {
 // 	fs := entries.NewBaseFs("/home/olly/.local/share/albatross/default/entries")
 
@@ -56,97 +48,108 @@ var (
 	DefaultStore = "/home/olly/.local/share/albatross/default"
 )
 
-func main() {
-	fmt.Println("Loading", TestStore)
-	store, err := core.Load(TestStore)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// func main() {
+// 	fmt.Println("Loading", TestStore)
+// 	store, err := core.Load(TestStore)
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Creating truffles entry...")
-	err = store.Create("food/truffles", `---
-title: "Truffles"
-date: "2020-08-08 20:00"
----
+// 	fmt.Println("Creating truffles entry...")
+// 	err = store.Create("food/truffles", `---
+// title: "Truffles"
+// date: "2020-08-08 20:00"
+// ---
 
-This is an entry all about truffles. I love truffles so much, but they are a bit pretentious.`)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// This is an entry all about truffles. I love truffles so much, but they are a bit pretentious.`)
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Attaching truffle photo...")
-	err = store.Attach("food/truffles", "/home/olly/code/go/src/github.com/albatross-org/go-albatross/pkg/core/testdata/truffle.jpg")
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// 	fmt.Println("Attaching truffle photo...")
+// 	err = store.Attach("food/truffles", "/home/olly/code/go/src/github.com/albatross-org/go-albatross/pkg/core/testdata/truffle.jpg")
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Creating truffles sub-entry...")
-	err = store.Create("food/truffles/mmmm", `---
-title: "mmmm"
-date: "2020-08-08 21:39"
----
+// 	fmt.Println("Creating truffles sub-entry...")
+// 	err = store.Create("food/truffles/mmmm", `---
+// title: "mmmm"
+// date: "2020-08-08 21:39"
+// ---
 
-mmmm? mm. mmmmm.`)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// mmmm? mm. mmmmm.`)
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Encrypting store...")
-	err = store.Encrypt()
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// 	fmt.Println("Encrypting store...")
+// 	err = store.Encrypt()
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Decrypting store...")
-	err = store.Decrypt(encryption.GetPassword)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// 	fmt.Println("Decrypting store...")
+// 	err = store.Decrypt(encryption.GetPassword)
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Updating truffles entry...")
-	err = store.Update("food/truffles", `---
-title: "Truffles"
-date: "2020-08-08 20:00"
----
+// 	fmt.Println("Updating truffles entry...")
+// 	err = store.Update("food/truffles", `---
+// title: "Truffles"
+// date: "2020-08-08 20:00"
+// ---
 
-This is an entry all about truffles. I love truffles so much, but they are a bit pretentious.
+// This is an entry all about truffles. I love truffles so much, but they are a bit pretentious.
 
-Actually, I've changed my mind about truffles now.`)
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// Actually, I've changed my mind about truffles now.`)
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Deleting truffles entry...")
-	err = store.Delete("food/truffles")
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// 	fmt.Println("Deleting truffles entry...")
+// 	err = store.Delete("food/truffles")
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	fmt.Println("Deleting truffles sub-entry...")
-	err = store.Delete("food/truffles/mmmm")
-	if err != nil {
-		logrus.Fatal(err)
-	}
+// 	fmt.Println("Deleting truffles sub-entry...")
+// 	err = store.Delete("food/truffles/mmmm")
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
 
-	// collection, err := store.Collection()
-	// if err != nil {
-	// 	logrus.Fatal(err)
-	// }
+// collection, err := store.Collection()
+// if err != nil {
+// 	logrus.Fatal(err)
+// }
 
-	// collection, err = collection.Filter(entries.FilterPathsExlude("journal"))
-	// if err != nil {
-	// 	logrus.Fatal(err)
-	// }
+// collection, err = collection.Filter(entries.FilterPathsExlude("journal"))
+// if err != nil {
+// 	logrus.Fatal(err)
+// }
 
-	// fmt.Printf("\nFound %d entries.\n", collection.Len())
+// fmt.Printf("\nFound %d entries.\n", collection.Len())
 
-	// g, viz, err := collection.Graph()
-	// if err != nil {
-	// 	logrus.Fatal(err)
-	// }
+// g, viz, err := collection.Graph()
+// if err != nil {
+// 	logrus.Fatal(err)
+// }
 
-	// err = g.Render(viz, "dot", os.Stdout)
-	// if err != nil {
-	// 	logrus.Fatal(err)
-	// }
-}
+// err = g.Render(viz, "dot", os.Stdout)
+// if err != nil {
+// 	logrus.Fatal(err)
+// }
+// }
+
+// func main() {
+// 	output, err := editor.Edit("Hello")
+// 	if err != nil {
+// 		logrus.Fatal(err)
+// 	}
+
+// 	fmt.Println(output)
+// }
+
+func main() {}
