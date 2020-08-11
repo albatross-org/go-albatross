@@ -11,29 +11,29 @@ import (
 // Entry represents a parsed `entry.md` file.
 type Entry struct {
 	// Path to entry file.
-	Path string
+	Path string `json:"path"`
 
 	// Contents is the contents of the file without front matter.
-	Contents string
+	Contents string `json:"contents"`
 
 	// OriginalContents is the contents of the file with the front matter.
-	OriginalContents string
+	OriginalContents string `json:"originalContents"`
 
 	// Tags are all the tags present in the document. For example, "@!journal".
-	Tags []string
+	Tags []string `json:"tags,nilasempty"`
 
 	// OutboundLinks are links going from this entry to another one.
 	// These are known when the entry is parsed.
-	OutboundLinks []Link
+	OutboundLinks []Link `json:"outboundLinks"`
 
 	// Date extracted from the entry.
-	Date time.Time
+	Date time.Time `json:"date"`
 
 	// Title of the entry.
-	Title string
+	Title string `json:"title"`
 
 	// Metadata is all the front-matter.
-	Metadata map[string]interface{}
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 // NewEntryFromFile returns a new Entry given a file system and a path to the `entry.md` file in that file system.

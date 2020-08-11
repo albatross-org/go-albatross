@@ -24,21 +24,21 @@ const (
 // Link represents an outbound link from one Entry to another.
 type Link struct {
 	// Parent is the entry that is being linked from.
-	Parent *Entry
+	Parent *Entry `json:"-"`
 
 	// Path is the path to the entry being linked to. This is blank if it's a title link.
-	Path string
+	Path string `json:"path"`
 
 	// Title is the title of the entry being linked to. This is blank if it's a path link.
-	Title string
+	Title string `json:"title"`
 
 	// Name is the name of the link. If no other name was specified, this is blank.
-	Name string
+	Name string `json:"name"`
 
 	// Type is the type of link.
-	Type LinkType
+	Type LinkType `json:"type"`
 
 	// Loc is the location of the link in the entry text, represented by a two-element slice of the start and and positions.
 	// The link text itself is at strippedContents[Loc[0]:Loc[1]]
-	Loc []int
+	Loc []int `json:"loc"`
 }

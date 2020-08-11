@@ -157,7 +157,7 @@ func (p Parser) extractFrontMatter(path, content string) (frontMatter string, st
 	}
 
 	startOffset := strings.Index(content, "---") + 4
-	endOffset := strings.LastIndex(content, "---")
+	endOffset := strings.Index(content[startOffset:], "---") + startOffset
 
 	if startOffset > endOffset {
 		return "", "", p.err(path, "could not find end offset of yaml front matter")

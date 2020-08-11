@@ -88,6 +88,7 @@ func (s *Store) Create(path, content string) error {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
 
+	relPath := path
 	path = filepath.Join(s.entriesPath, path)
 
 	entryPath := filepath.Join(path, "entry.md")
@@ -108,7 +109,7 @@ func (s *Store) Create(path, content string) error {
 		return err
 	}
 
-	err = s.recordChange(path, "Add %s", path)
+	err = s.recordChange(relPath, "Add %s", relPath)
 	if err != nil {
 		return err
 	}
@@ -125,6 +126,8 @@ func (s *Store) Update(path, content string) error {
 	} else if encrypted {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
+
+	relPath := path
 	path = filepath.Join(s.entriesPath, path)
 
 	entryPath := filepath.Join(path, "entry.md")
@@ -137,7 +140,7 @@ func (s *Store) Update(path, content string) error {
 		return err
 	}
 
-	err = s.recordChange(path, "Update %s", path)
+	err = s.recordChange(relPath, "Update %s", relPath)
 	if err != nil {
 		return err
 	}
@@ -156,6 +159,7 @@ func (s *Store) Attach(path, attachmentPath string) error {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
 
+	relPath := path
 	path = filepath.Join(s.entriesPath, path)
 
 	entryPath := filepath.Join(path, "entry.md")
@@ -178,7 +182,7 @@ func (s *Store) Attach(path, attachmentPath string) error {
 		return fmt.Errorf("cannot copy attachment from %s to %s: %w", attachmentPath, attachmentDestinationPath, err)
 	}
 
-	err = s.recordChange(path, "Attach %s to %s", attachmentPath, path)
+	err = s.recordChange(relPath, "Attach %s to %s", attachmentPath, relPath)
 	if err != nil {
 		return err
 	}
@@ -201,6 +205,7 @@ func (s *Store) Delete(path string) error {
 		return ErrStoreEncrypted{Path: s.Path}
 	}
 
+	relPath := path
 	path = filepath.Join(s.entriesPath, path)
 
 	entryPath := filepath.Join(path, "entry.md")
@@ -235,7 +240,7 @@ func (s *Store) Delete(path string) error {
 		}
 	}
 
-	err = s.recordChange(path, "Delete %s", path)
+	err = s.recordChange(relPath, "Delete %s", relPath)
 	if err != nil {
 		return err
 	}

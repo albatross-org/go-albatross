@@ -6,6 +6,7 @@ require (
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/goccy/go-graphviz v0.0.6
 	github.com/jchavannes/go-pgp v0.0.0-20200131171414-e5978e6d02b4
+	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/otiai10/copy v1.2.0
 	github.com/prometheus/common v0.4.0

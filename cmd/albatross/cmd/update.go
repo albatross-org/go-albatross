@@ -66,29 +66,34 @@ $ albatross update food/pizza`,
 
 		entry := es.List().Slice()[0]
 
-		content, err := edit(
-			editorName,
-			entry.OriginalContents,
-		)
-		if err != nil {
-			log.Fatal("Couldn't get content from editor: ", err)
-		}
-
-		err = store.Update(args[0], content)
-		if err != nil {
-			f, err := ioutil.TempFile("", "albatross-recover")
-			if err != nil {
-				logrus.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
-			}
-
-			f.Write([]byte(content))
-
-			fmt.Println("Error updating entry. A copy of the updated file has been saved to:", f.Name())
-			os.Exit(1)
-		}
-
-		fmt.Println("Successfully updated entry:", args[0])
+		updateEntry(entry, editorName)
 	},
+}
+
+func updateEntry(entry *entries.Entry, editorName string) {
+	content, err := edit(
+		editorName,
+		entry.OriginalContents,
+	)
+	if err != nil {
+		log.Fatal("Couldn't get content from editor: ", err)
+	}
+
+	err = store.Update(entry.Path, content)
+	if err != nil {
+		f, tempErr := ioutil.TempFile("", "albatross-recover")
+		if tempErr != nil {
+			logrus.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
+		}
+
+		f.Write([]byte(content))
+
+		fmt.Println("Error updating entry. A copy of the updated file has been saved to:", f.Name())
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Successfully updated entry:", entry.Path)
 }
 
 func init() {

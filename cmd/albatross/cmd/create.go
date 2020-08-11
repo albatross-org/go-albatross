@@ -12,7 +12,7 @@ import (
 )
 
 var defaultEntry = `---
-title: ""
+title: "%s"
 date: "%s"
 ---
 
@@ -57,14 +57,14 @@ $ albatross create food/pizza`,
 		// Here we create an empty entry first, then update it.
 		// This means that an error like "EntryAlreadyExists" will come up now rather than
 		// after the entry has been created, which could lead to data loss.
-		err = store.Create(args[0], "")
+		err = store.Create(args[0], fmt.Sprintf(defaultEntry, "Temp", time.Now().Format("2006-01-02 15:04")))
 		if err != nil {
 			log.Fatal("Couldn't create entry: ", err)
 		}
 
 		content, err := edit(
 			editorName,
-			fmt.Sprintf(defaultEntry, time.Now().Format("2006-01-02 15:04")),
+			fmt.Sprintf(defaultEntry, "", time.Now().Format("2006-01-02 15:04")),
 		)
 		if err != nil {
 			log.Fatal("Couldn't get content from editor: ", err)

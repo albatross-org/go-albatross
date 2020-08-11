@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,6 +15,15 @@ func getEditor(def string) string {
 	}
 
 	return env
+}
+
+// checkArg checks an error returned by a call to cmd.Flags().Get and prints an error if it fails.
+func checkArg(err error) {
+	if err != nil {
+		fmt.Println("Can't get argument:")
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 // tempFile returns the path to a temporary file for editing, initialised with the content specified.
