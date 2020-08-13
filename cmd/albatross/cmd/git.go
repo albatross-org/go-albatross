@@ -43,7 +43,7 @@ $ albatross git -- commit -m "commit message"`,
 			os.Exit(0)
 		}
 
-		newArgs := []string{"--git-dir", filepath.Join(storePath, "entries", ".git")}
+		newArgs := []string{"--git-dir", filepath.Join(storePath, "entries", ".git"), "--work-tree", filepath.Join(storePath, "entries")}
 		c := exec.Command("git", append(newArgs, args...)...)
 		c.Stdin = os.Stdin
 		c.Stdout = os.Stdout
