@@ -268,6 +268,16 @@ func (s *Store) load() error {
 
 	s.coll = collection
 
+	err = s.loadGit()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// loadGit loads git
+func (s *Store) loadGit() error {
 	repo, err := git.PlainOpen(s.entriesPath)
 	if err != nil {
 		// Here we ignore an error if we open the git repository.

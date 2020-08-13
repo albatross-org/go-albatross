@@ -71,5 +71,7 @@ func (s *Store) Decrypt(passwordFunc func() (string, error)) error {
 		return err
 	}
 
+	s.loadGit()
+
 	return os.RemoveAll(s.entriesPath + ".gpg")
 }
