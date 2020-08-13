@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/jchavannes/go-pgp/pgp"
+	"github.com/albatross-org/go-pgp/pgp"
 )
 
 // EncryptDir takes the path to a directory an encrypts it using the public key specified.

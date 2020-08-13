@@ -31,8 +31,8 @@ func tempTestDir(t *testing.T) (path string, cleanup func()) {
 }
 
 func TestEncryptionDecryptionValid(t *testing.T) {
-	dir, cleanup := tempTestDir(t)
-	defer cleanup()
+	dir, _ := tempTestDir(t)
+	// defer cleanup()
 
 	err := EncryptDir(
 		filepath.Join(dir, "testdata", "example"),

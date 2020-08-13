@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/albatross-org/go-albatross/encryption"
 	"github.com/sirupsen/logrus"
@@ -18,7 +19,6 @@ var decryptCmd = &cobra.Command{
 	Long:  `decrypt will decrypt an albatross store`,
 	Run: func(cmd *cobra.Command, args []string) {
 		decryptStore()
-		fmt.Println("Decrypted.")
 	},
 }
 
@@ -30,9 +30,14 @@ func init() {
 // It will exit if authentication fails three times.
 func decryptStore() {
 	var failCount int
+	var start time.Time
+
+	fmt.Println("Decrypting...")
 
 	for i := 0; i < 3; i++ {
+		start = time.Now()
 		err := store.Decrypt(encryption.GetPassword)
+
 		if _, ok := err.(encryption.ErrPrivateKeyDecryptionFailed); ok {
 			fmt.Printf("Invalid password. Try again...\n\n")
 			failCount++
@@ -51,4 +56,6 @@ func decryptStore() {
 		fmt.Println("Decryption failed three times. Exiting.")
 		os.Exit(1)
 	}
+
+	fmt.Printf("Done in %s.\n", time.Now().Sub(start))
 }
