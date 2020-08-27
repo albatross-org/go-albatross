@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/albatross-org/go-albatross/entries"
@@ -80,6 +81,9 @@ $ albatross get -substring "cat" -sort "alpha" -rev # Sort all entries where you
 		metadata, err := cmd.Flags().GetBool("metadata")
 		checkArg(err)
 
+		ankify, err := cmd.Flags().GetBool("ankify")
+		checkArg(err)
+
 		update, err := cmd.Flags().GetBool("update")
 		checkArg(err)
 
@@ -91,7 +95,7 @@ $ albatross get -substring "cat" -sort "alpha" -rev # Sort all entries where you
 
 		// Check multiple actions weren't given
 		var alreadySet bool
-		var actions = []bool{read, path, links, title, date, export, metadata, update, attach, tags}
+		var actions = []bool{read, path, links, title, date, export, metadata, ankify, update, attach, tags}
 		for _, action := range actions {
 			if action {
 				if alreadySet {
@@ -168,6 +172,11 @@ $ albatross get -substring "cat" -sort "alpha" -rev # Sort all entries where you
 					}
 				}
 			}
+		case tags:
+			for _, entry := range list.Slice() {
+				fmt.Println(strings.Join(entry.Tags, ", "))
+			}
+
 		case title:
 			for _, entry := range list.Slice() {
 				fmt.Println(entry.Title)
@@ -195,6 +204,10 @@ $ albatross get -substring "cat" -sort "alpha" -rev # Sort all entries where you
 			}
 
 			fmt.Println(string(j))
+
+		case ankify:
+			entries := list.Slice()
+			generateAnkiFlashcards(entries, true)
 
 		case update:
 			var chosen *entries.Entry
@@ -254,7 +267,9 @@ func init() {
 	getCmd.Flags().Bool("title", false, "prints the titles in the entries")
 	getCmd.Flags().Bool("date", false, "prints the date of the entries")
 	getCmd.Flags().Bool("export", false, "prints all the information about the entries, in JSON format")
-	getCmd.Flags().Bool("metadata", false, "peturns all the metadata in all entries, in JSON format")
+	getCmd.Flags().Bool("metadata", false, "returns all the metadata in all entries, in JSON format")
+
+	getCmd.Flags().Bool("ankify", false, "output a TSV-formatted file ready for an import to anki (see albatross tool ankify --help)")
 
 	getCmd.Flags().Bool("update", false, "update an entry")
 	getCmd.Flags().Bool("attach", false, "attach a file to the entry")

@@ -33,9 +33,9 @@ var rootCmd = &cobra.Command{
 	
 This program is a command line tool for interfacing with Albatross stores.
 
-$ albatross decrypt
-$ albatross create food/pizza
-$ albatross get -path food/pizza --update`,
+    $ albatross decrypt
+    $ albatross create food/pizza
+    $ albatross get -path food/pizza --update`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Store '%s':\n", storeName)
 		fmt.Println("  Path:", storePath)
