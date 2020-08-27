@@ -18,8 +18,8 @@ date: "%s"
 
 `
 
-// createCmd represents the create command
-var createCmd = &cobra.Command{
+// CreateCmd represents the create command
+var CreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "create a new entry",
 	Long: `create a new entry from the command line
@@ -88,6 +88,6 @@ $ albatross create food/pizza`,
 }
 
 func init() {
-	rootCmd.AddCommand(createCmd)
-	createCmd.Flags().StringP("editor", "e", "", "Editor to use (defaults to $EDITOR, then vim)")
+	rootCmd.AddCommand(CreateCmd)
+	CreateCmd.Flags().StringP("editor", "e", "", "Editor to use (defaults to $EDITOR, then vim)")
 }

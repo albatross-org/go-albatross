@@ -10,8 +10,8 @@ import (
 	albatross "github.com/albatross-org/go-albatross/pkg/core"
 )
 
-// encryptCmd represents the encrypt command
-var encryptCmd = &cobra.Command{
+// EncryptCmd represents the encrypt command
+var EncryptCmd = &cobra.Command{
 	Use:   "encrypt",
 	Short: "encrypt an albatross store",
 	Long: `encrypt will encrypt an albatross store
@@ -26,7 +26,7 @@ Encrypting... done in 45ms`,
 }
 
 func init() {
-	rootCmd.AddCommand(encryptCmd)
+	rootCmd.AddCommand(EncryptCmd)
 }
 
 // encryptStore will encrypt an albatross store.

@@ -3,8 +3,8 @@ package cmd
 import (
 	"bytes"
 	"encoding/csv"
+	"fmt"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/albatross-org/go-albatross/entries"
@@ -14,56 +14,48 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-var regexLatexSingle = regexp.MustCompile(`[^$](\${1})[^$]`)
-var regexLatexDouble = regexp.MustCompile(`(\${2})`)
-
-// toolAnkifyCmd represents the ankify command
-var toolAnkifyCmd = &cobra.Command{
+// ActionAnkifyCmd represents the 'tags' action.
+var ActionAnkifyCmd = &cobra.Command{
 	Use:   "ankify",
-	Short: "ankify converts notes into Anki flashcards",
-	Args:  cobra.ExactArgs(1),
+	Short: "print titles",
 	Long: `ankify converts entries into anki flashcards.
 	
-Given a path, it will find all entries tagged @?ankify and convert headings with two
+It will find all entries tagged @?ankify and convert headings with two
 question marks (??) into flashcards. For example:
 
-    $ albatross tool ankify path/to/entries
+	$ albatross get -p path/to/entries ankify
 
-    ##### What's the point in living??
-    The point in living is to...
+	##### What's the point in living??
+	The point in living is to...
 
 Will become:
 
-    1st side:
-    ┌──────────────────────────────┐
-    │ What's the point in living?  │
-    └──────────────────────────────┘
-
-    2nd side:
-    ┌──────────────────────────────┐
-    │ The point in living is to... │
+	1st side:
+	┌──────────────────────────────┐
+	│ What's the point in living?  │
 	└──────────────────────────────┘
 
-You can also use ankify with the 'get' command for more powerful searches:
-
-    $ albatross get --title "My Flashcards" --ankify 
+	2nd side:
+	┌──────────────────────────────┐
+	│ The point in living is to... │
+	└──────────────────────────────┘
 	
 It outputs a TSV file, which can then be redirected into a file:
 
-	$ albatross tool ankify path/to/entries > ~/.local/decks/entries.tsv
+	$ albatross get -t "My Flashcards" ankify > ~/.local/decks/entries.tsv
 
 The format of the TSV file is:
 
-<HEADING>	<QUESTION>	<PATH>
+    <HEADING>	<QUESTION>	<PATH>
 
 In order to import this into Anki, open the application and click "Import File" at the bottom.
 You will need to create a new Note Type so that Anki handles the path correctly before you import. To do this:
 
-- Click 'Add' at the top.
-- Press 'Manage', then Add.
-- Click 'Add: Basic', and enter a suitable name like 'Ankify'.
-- This should open the note entry window.
-- Then click 'Fields...', press 'Add' and name it 'Path'.
+    - Click 'Add' at the top.
+    - Press 'Manage', then Add.
+    - Click 'Add: Basic', and enter a suitable name like 'Ankify'.
+    - This should open the note entry window.
+    - Then click 'Fields...', press 'Add' and name it 'Path'.
 
 That should be it. Now when you import the TSV file, select the Note Type as being 'Ankify', or the name that you entered.
 
@@ -75,15 +67,10 @@ you can leverage the search field and create a filtered deck (Tools->Create Filt
 	path:*school/a-level/physics/topic1*
 	
 	# Revise a specific piece of knowledge
-	path:*school/a-level/physics/topic8/electromagnetism
-`,
-	Run: func(cmd *cobra.Command, args []string) {
-		collection, err := store.Collection()
-		if err != nil {
-			log.Fatalf("Error parsing the Albatross store: %s", err)
-		}
+	path:*school/a-level/physics/topic8/electromagnetism`,
 
-		path := args[0]
+	Run: func(cmd *cobra.Command, args []string) {
+		collection, _ := getFromCommand(cmd)
 
 		ignoreTagRequirement, err := cmd.Flags().GetBool("ignore-required-tag")
 		if err != nil {
@@ -95,19 +82,14 @@ you can leverage the search field and create a filtered deck (Tools->Create Filt
 			log.Fatalf("Error getting 'fix-latex' flag: %s", err)
 		}
 
-		filtered, err := collection.Filter(entries.FilterPathsInclude(path))
-		if err != nil {
-			log.Fatalf("Error filtering entries for exact path %q: %s", path, err)
-		}
-
 		if !ignoreTagRequirement {
-			filtered, err = collection.Filter(entries.FilterTagsInclude("@?ankify"))
+			collection, err = collection.Filter(entries.FilterTagsInclude("@?ankify"))
 			if err != nil {
 				log.Fatalf("Error filtering entries for tag %q: %s", "@?ankify", err)
 			}
 		}
 
-		entries := filtered.List().Slice()
+		entries := collection.List().Slice()
 		generateAnkiFlashcards(entries, fixLatex)
 	},
 }
@@ -119,7 +101,7 @@ func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool) {
 	for _, entry := range entries {
 		flashcards, err := extractFlashcards(entry)
 		if err != nil {
-			log.Error("Error parsing markdown for entry %q: %s", entry.Path, err)
+			fmt.Printf("Error parsing markdown for entry %q: %s\n", entry.Path, err)
 			continue
 		}
 
@@ -165,6 +147,7 @@ func extractFlashcards(entry *entries.Entry) ([][]string, error) {
 			} else {
 				state = "none"
 				child = child.NextSibling()
+				flashcard = []string{}
 				continue
 			}
 
@@ -199,8 +182,8 @@ func fixFlashcardLatex(flashcard []string) []string {
 }
 
 func init() {
-	toolCmd.AddCommand(toolAnkifyCmd)
+	GetCmd.AddCommand(ActionAnkifyCmd)
 
-	toolAnkifyCmd.Flags().BoolP("ignore-required-tag", "i", false, "Don't require the @?ankify tag to generate flashcards for that entry")
-	toolAnkifyCmd.Flags().Bool("fix-latex", true, "converts '$' and '$$' to '[$]' and '[$$]'")
+	ActionAnkifyCmd.Flags().BoolP("ignore-required-tag", "i", false, "Don't require the @?ankify tag to generate flashcards for that entry")
+	ActionAnkifyCmd.Flags().Bool("fix-latex", true, "converts '$' and '$$' to '[$]' and '[$$]'")
 }

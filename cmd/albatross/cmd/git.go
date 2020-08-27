@@ -9,8 +9,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// gitCmd represents the git command
-var gitCmd = &cobra.Command{
+// GitCmd represents the git command
+var GitCmd = &cobra.Command{
 	Use:   "git",
 	Short: "git lets you interface with git in an store",
 	Long: `git lets you access git version control within the store.
@@ -54,5 +54,5 @@ $ albatross git -- commit -m "commit message"`,
 }
 
 func init() {
-	rootCmd.AddCommand(gitCmd)
+	rootCmd.AddCommand(GitCmd)
 }

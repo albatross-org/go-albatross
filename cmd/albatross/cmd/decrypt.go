@@ -12,8 +12,8 @@ import (
 	albatross "github.com/albatross-org/go-albatross/pkg/core"
 )
 
-// decryptCmd represents the decrypt command
-var decryptCmd = &cobra.Command{
+// DecryptCmd represents the decrypt command
+var DecryptCmd = &cobra.Command{
 	Use:   "decrypt",
 	Short: "decrypt an albatross store",
 	Long:  `decrypt will decrypt an albatross store`,
@@ -23,7 +23,7 @@ var decryptCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(decryptCmd)
+	rootCmd.AddCommand(DecryptCmd)
 }
 
 // decryptStore is a utility function for decrypting the store, asking for a password three times.

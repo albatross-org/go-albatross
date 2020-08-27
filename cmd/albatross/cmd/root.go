@@ -18,6 +18,7 @@ import (
 var cfgFile string
 var logLvl string
 var leaveDecrypted bool
+var disableGit bool
 
 var storeName string
 var storePath string
@@ -88,6 +89,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&logLvl, "level", "info", "logging level (trace, debug, info, warning, error, fatal, panic)")
 	rootCmd.PersistentFlags().StringVar(&storeName, "store", "default", "store to use, as defined in config file (e.g. default, thesis)")
 	rootCmd.PersistentFlags().BoolVarP(&leaveDecrypted, "leave-decrypted", "l", false, "whether to leave the store decrypted or encrypt it again after decrypting it")
+	rootCmd.PersistentFlags().BoolVarP(&disableGit, "disable-git", "d", false, "don't use git for version control (mainly used when you want to make commits by hand)")
 }
 
 // getConfigDirectory gets the configuration directory that should be used for the program.
@@ -158,6 +160,10 @@ func initStore() {
 	store, err = albatross.Load(storePath)
 	if err != nil {
 		logrus.Fatal(err)
+	}
+
+	if disableGit {
+		store.DisableGit()
 	}
 }
 

@@ -23,16 +23,17 @@ type Store struct {
 	entriesPath string
 	configPath  string
 
-	coll     *entries.Collection
-	repo     *git.Repository
-	worktree *git.Worktree
+	coll       *entries.Collection
+	repo       *git.Repository
+	worktree   *git.Worktree
+	disableGit bool
 
 	config *viper.Viper
 }
 
 // Load returns a new Albatross store representation.
 func Load(path string) (*Store, error) {
-	var s = &Store{Path: path}
+	var s = &Store{Path: path, disableGit: false}
 
 	s.entriesPath = filepath.Join(path, "entries")
 	s.configPath = filepath.Join(path, "config.yaml")
@@ -251,8 +252,17 @@ func (s *Store) Delete(path string) error {
 }
 
 // UsingGit returns true or false depending on whether the store is using Git.
+// This will still return true after a call to .DisableGit. The reasoning is that the store is still
+// using Git, it's just Git functionality isn't being used by the client.
 func (s *Store) UsingGit() bool {
 	return s.worktree != nil
+}
+
+// DisableGit disables the use of git.
+// Calling .UsingGit will still return true. The reasoning is that the store is still
+// using Git, it's just Git functionality isn't being used by the client.
+func (s *Store) DisableGit() {
+	s.disableGit = true
 }
 
 // load loads the Collection and in-memory git repository contained within the Store.
@@ -312,6 +322,10 @@ func (s *Store) reload() {
 func (s *Store) recordChange(path, message string, a ...interface{}) error {
 	if s.repo == nil {
 		return nil // If we're not using Git, don't do anything.
+	}
+
+	if s.disableGit == true {
+		return nil // If git has been disabled, also don't do anything
 	}
 
 	_, err := s.worktree.Add(path)
