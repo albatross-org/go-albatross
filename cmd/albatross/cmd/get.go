@@ -46,6 +46,8 @@ the available subcommands.`,
 func init() {
 	rootCmd.AddCommand(GetCmd)
 
+	GetCmd.PersistentFlags().String("date-format", "2006-01-02", "date format for parsing from and until")
+
 	// Filters
 	GetCmd.PersistentFlags().IntP("number", "n", -1, "number of entries to return, -1 means all")
 	GetCmd.PersistentFlags().StringP("from", "f", "", "only show entries with creation dates after this")
@@ -73,25 +75,25 @@ func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
 	checkArg(err)
 
 	// Get the filter flags
-	fNumber, err := cmd.Flags().GetInt("f-number")
+	fNumber, err := cmd.Flags().GetInt("number")
 	checkArg(err)
 
-	fFrom, err := cmd.Flags().GetString("f-from")
+	fFrom, err := cmd.Flags().GetString("from")
 	checkArg(err)
 
-	fUntil, err := cmd.Flags().GetString("f-until")
+	fUntil, err := cmd.Flags().GetString("until")
 	checkArg(err)
 
-	fPath, err := cmd.Flags().GetStringSlice("f-path")
+	fPath, err := cmd.Flags().GetStringSlice("path")
 	checkArg(err)
 
-	fTitle, err := cmd.Flags().GetStringSlice("f-title")
+	fTitle, err := cmd.Flags().GetStringSlice("title")
 	checkArg(err)
 
-	fSubstring, err := cmd.Flags().GetStringSlice("f-substring")
+	fSubstring, err := cmd.Flags().GetStringSlice("substring")
 	checkArg(err)
 
-	fTag, err := cmd.Flags().GetStringSlice("f-tag")
+	fTag, err := cmd.Flags().GetStringSlice("tag")
 	checkArg(err)
 
 	// Parse dates using format

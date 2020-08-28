@@ -20,7 +20,7 @@ var ActionAnkifyCmd = &cobra.Command{
 	Short: "print titles",
 	Long: `ankify converts entries into anki flashcards.
 	
-It will find all entries tagged @?ankify and convert headings with two
+Ankify will process all entries matched and convert headings with two
 question marks (??) into flashcards. For example:
 
 	$ albatross get -p path/to/entries ankify
@@ -70,27 +70,14 @@ you can leverage the search field and create a filtered deck (Tools->Create Filt
 	path:*school/a-level/physics/topic8/electromagnetism`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		collection, _ := getFromCommand(cmd)
-
-		ignoreTagRequirement, err := cmd.Flags().GetBool("ignore-required-tag")
-		if err != nil {
-			log.Fatalf("Error getting 'ignore-required-tag' flag: %s", err)
-		}
+		_, list := getFromCommand(cmd)
 
 		fixLatex, err := cmd.Flags().GetBool("fix-latex")
 		if err != nil {
 			log.Fatalf("Error getting 'fix-latex' flag: %s", err)
 		}
 
-		if !ignoreTagRequirement {
-			collection, err = collection.Filter(entries.FilterTagsInclude("@?ankify"))
-			if err != nil {
-				log.Fatalf("Error filtering entries for tag %q: %s", "@?ankify", err)
-			}
-		}
-
-		entries := collection.List().Slice()
-		generateAnkiFlashcards(entries, fixLatex)
+		generateAnkiFlashcards(list.Slice(), fixLatex)
 	},
 }
 
@@ -184,6 +171,5 @@ func fixFlashcardLatex(flashcard []string) []string {
 func init() {
 	GetCmd.AddCommand(ActionAnkifyCmd)
 
-	ActionAnkifyCmd.Flags().BoolP("ignore-required-tag", "i", false, "Don't require the @?ankify tag to generate flashcards for that entry")
 	ActionAnkifyCmd.Flags().Bool("fix-latex", true, "converts '$' and '$$' to '[$]' and '[$$]'")
 }
