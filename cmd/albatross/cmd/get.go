@@ -64,6 +64,17 @@ func init() {
 
 // getFromCommand runs a get query by parsing a command for flags.
 func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
+	encrypted, err := store.Encrypted()
+	if err != nil {
+		log.Fatal(err)
+	} else if encrypted {
+		decryptStore()
+
+		if !leaveDecrypted {
+			defer encryptStore()
+		}
+	}
+
 	// Get the misc flags
 	dateFormat, err := cmd.Flags().GetString("date-format")
 	checkArg(err)
