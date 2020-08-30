@@ -20,8 +20,9 @@ date: "%s"
 
 // CreateCmd represents the create command
 var CreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "create a new entry",
+	Use:     "create",
+	Short:   "create a new entry",
+	Aliases: []string{"new"},
 	Long: `create a new entry from the command line
 	
 $ albatross create food/pizza`,
