@@ -1,19 +1,24 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
+	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig"
 	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
 
 var defaultEntry = `---
-title: "%s"
-date: "%s"
+title: "<(default "Title" .title)>"
+date: "<(.date | date "2006-01-02 15:04")>"
 ---
 
 `
@@ -25,7 +30,54 @@ var CreateCmd = &cobra.Command{
 	Aliases: []string{"new"},
 	Long: `create a new entry from the command line
 	
-$ albatross create food/pizza`,
+	$ albatross create food/pizza "The Most Amazing Pizza"
+
+You can define templates which are placed in a "templates/" directory at the root of the store:
+
+	.
+	├── config.yaml
+	├── entries/
+	└── templates/
+		└── exercise.tmpl
+
+In the above example, the template could be used when creating the entry like so:
+
+	$ albatross create logs/exercise/2020/08/30 -t exercise
+
+You can use Go's template strings within the template files themselves to auto populate some values
+to save typing:
+
+	(exercise.tmpl)
+	---
+	title: 'Exercise Log'
+	date: '<(.date | date "2006-01-02 15:04")>'
+	---
+
+	### [[Running]]
+	* <(.distance)> mi @ !(.pace)!/mi
+
+Notice the alternate syntax for templates, "<(" and ")>", opposed to Go's default "{{" and "}}". This is
+to prevent interference with Albatross' path links.
+
+As a context for the template, you can pass key values with the -c flag:
+
+	$ albatross create logs/exercise/2020/08/30 -t exercise -c distance=3.24 -c pace=7:47
+
+.date, as shown above, is set automatically to the current time. Sprig (https://github.com/Masterminds/sprig) helper
+functions/pipelines are available, such as:
+
+	- date
+	- toJSON
+	- upper
+
+The default template is:
+
+	---
+	title: "<(default "Title" .title)>"
+	date: "<(.date | date "2006-01-02 15:04")>"
+	---
+
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		encrypted, err := store.Encrypted()
 		if err != nil {
@@ -40,20 +92,26 @@ $ albatross create food/pizza`,
 
 		editorName := getEditor("vim")
 		customEditor, err := cmd.Flags().GetString("editor")
-		if err != nil {
-			log.Fatal("Couldn't get custom editor: ", err)
-		}
+		checkArg(err)
 
 		if customEditor != "" {
 			editorName = customEditor
 		}
 
-		if len(args) != 1 {
-			fmt.Println("Expecting exactly one argument: path to entry")
+		templateFile, err := cmd.Flags().GetString("template")
+		checkArg(err)
+
+		contextStrings, err := cmd.Flags().GetStringToString("context")
+		checkArg(err)
+
+		if len(args) == 0 {
+			fmt.Println("Expecting exactly one or more arguments: path to entry and optional title")
 			fmt.Println("For example:")
 			fmt.Println("")
-			fmt.Println("$ albatross create food/pizza")
+			fmt.Println("$ albatross create food/pizza Pizza")
 		}
+
+		contextStrings["title"] = strings.Join(args[1:], " ")
 
 		// Here we create an empty entry first, then update it.
 		// This means that an error like "EntryAlreadyExists" will come up now rather than
@@ -63,10 +121,7 @@ $ albatross create food/pizza`,
 			log.Fatal("Couldn't create entry: ", err)
 		}
 
-		content, err := edit(
-			editorName,
-			fmt.Sprintf(defaultEntry, "", time.Now().Format("2006-01-02 15:04")),
-		)
+		content, err := edit(editorName, getTemplate(templateFile, contextStrings))
 		if err != nil {
 			log.Fatal("Couldn't get content from editor: ", err)
 		}
@@ -88,7 +143,63 @@ $ albatross create food/pizza`,
 	},
 }
 
+func getTemplate(name string, contextStrings map[string]string) string {
+	var context = make(map[string]interface{})
+	for k, v := range contextStrings {
+		context[k] = v
+	}
+
+	context["date"] = time.Now()
+
+	templates, err := ioutil.ReadDir(filepath.Join(storePath, "templates"))
+	if err != nil {
+		logrus.Fatalf("error reading templates directory: %s", err)
+		return ""
+	}
+
+	var match string
+
+	if name != "" {
+		for _, info := range templates {
+			templateName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
+
+			if templateName == name {
+				matchBytes, err := ioutil.ReadFile(filepath.Join(storePath, "templates", info.Name()))
+				if err != nil {
+					logrus.Fatalf("error reading template file %s: %s", filepath.Join(storePath, "templates", info.Name()), err)
+				}
+
+				match = string(matchBytes)
+			}
+		}
+
+		if len(match) == 0 {
+			logrus.Fatalf("Template '%s' doesn't exist.", name)
+		}
+	} else {
+		match = defaultEntry
+	}
+
+	tmpl := template.New("template").Delims("<(", ")>").Funcs(sprig.TxtFuncMap())
+	tmpl, err = tmpl.Parse(match)
+	if err != nil {
+		logrus.Fatalf("Error parsing template: %s", err)
+	}
+
+	var out bytes.Buffer
+
+	err = tmpl.Execute(&out, context)
+	if err != nil {
+		logrus.Fatalf("Error executing template: %s", err)
+	}
+
+	return out.String()
+}
+
 func init() {
 	rootCmd.AddCommand(CreateCmd)
+
 	CreateCmd.Flags().StringP("editor", "e", "", "Editor to use (defaults to $EDITOR, then vim)")
+	CreateCmd.Flags().StringP("template", "t", "", "Template file to use")
+	CreateCmd.Flags().StringToStringP("context", "c", map[string]string{}, "Context for template")
 }
