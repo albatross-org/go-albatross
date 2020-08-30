@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"io/ioutil"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/albatross-org/go-albatross/entries"
@@ -17,9 +20,14 @@ var (
 
 // GetCmd represents the get command
 var GetCmd = &cobra.Command{
-	Use:   "get",
-	Short: "get entries matching specific criteria",
-	Long: `get finds entries matching specific criteria
+	Use:   "get [action]",
+	Short: "get entries matching specific criteria and perform actions on them",
+	Long: `get finds entries matching specific criteria and allows you to run actions on them, such as
+
+- Printing their links
+- Printing their paths
+- Exporting them as JSON or YAML
+- Generating flashcards
 	
 Some examples:
 
@@ -56,6 +64,8 @@ func init() {
 	GetCmd.PersistentFlags().StringSliceP("title", "t", []string{}, "titles to allow")
 	GetCmd.PersistentFlags().StringSliceP("substring", "s", []string{}, "substrings to allow")
 	GetCmd.PersistentFlags().StringSliceP("tag", "a", []string{}, "tags to allow")
+
+	GetCmd.PersistentFlags().BoolP("stdin", "i", false, "read list of paths from stdin")
 
 	// Misc
 	GetCmd.PersistentFlags().BoolP("rev", "r", false, "reverse the list returned")
@@ -107,6 +117,9 @@ func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
 	fTag, err := cmd.Flags().GetStringSlice("tag")
 	checkArg(err)
 
+	fStdin, err := cmd.Flags().GetBool("stdin")
+	checkArg(err)
+
 	// Parse dates using format
 	var fFromDate, fUntilDate time.Time
 
@@ -124,8 +137,19 @@ func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
 		}
 	}
 
+	// Get stdin paths
+	var pathsExact []string
+	if fStdin {
+		stdin, err := ioutil.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatalf("Can't read stdin: %s", err)
+		}
+
+		pathsExact = strings.Split(string(stdin), "\n")
+	}
+
 	// Get the list
-	collection, list := get(fFromDate, fUntilDate, fPath, fTitle, fTag, fSubstring)
+	collection, list := get(fFromDate, fUntilDate, fPath, pathsExact, fTitle, fTag, fSubstring)
 
 	switch sort {
 	case "alpha":
@@ -146,7 +170,7 @@ func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
 }
 
 // get gets all the entries matching certain criteria, as an entries.List. It also returns the original entries.Collection
-func get(from, until time.Time, paths []string, titles []string, tags []string, substrings []string) (*entries.Collection, entries.List) {
+func get(from, until time.Time, pathsInclude []string, pathsExact []string, titles []string, tags []string, substrings []string) (*entries.Collection, entries.List) {
 	var err error
 	collection, err := store.Collection()
 
@@ -170,8 +194,15 @@ func get(from, until time.Time, paths []string, titles []string, tags []string, 
 		}
 	}
 
-	if len(paths) != 0 {
-		collection, err = collection.Filter(entries.FilterPathsInclude(paths...))
+	if len(pathsInclude) != 0 {
+		collection, err = collection.Filter(entries.FilterPathsInclude(pathsInclude...))
+		if err != nil {
+			log.Fatalf("Error filtering 'paths': %s", err)
+		}
+	}
+
+	if len(pathsExact) != 0 {
+		collection, err = collection.Filter(entries.FilterPathsExact(pathsExact...))
 		if err != nil {
 			log.Fatalf("Error filtering 'paths': %s", err)
 		}

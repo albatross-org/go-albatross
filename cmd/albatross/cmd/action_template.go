@@ -53,16 +53,14 @@ of entries itself, use the --all flag.
 			panic(err)
 		}
 
-		if fi.Mode()&os.ModeNamedPipe == 0 {
-			if len(args) != 1 {
-				fmt.Println("template takes one arg, the template, or reads from stdin:")
-				fmt.Println("")
-				fmt.Println("    $ albatross get template '{{.Title}}'")
-				fmt.Println("    $ cat template.txt | albatross get template")
-				os.Exit(1)
-			}
-
+		if len(args) == 1 {
 			tmpl, err = tmpl.Parse(args[0])
+		} else if fi.Mode()&os.ModeNamedPipe == 0 {
+			fmt.Println("template takes one arg, the template, or reads from stdin:")
+			fmt.Println("")
+			fmt.Println("    $ albatross get template '{{.Title}}'")
+			fmt.Println("    $ cat template.txt | albatross get template")
+			os.Exit(1)
 		} else {
 			stdin, err := ioutil.ReadAll(os.Stdin)
 			if err != nil {
