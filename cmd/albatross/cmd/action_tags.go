@@ -15,7 +15,7 @@ var ActionTagsCmd = &cobra.Command{
 	Long:  `tags will display the tags in entries`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
 
 		for _, entry := range list.Slice() {
 			fmt.Println(strings.Join(entry.Tags, ", "))

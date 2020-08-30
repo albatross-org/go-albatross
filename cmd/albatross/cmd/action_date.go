@@ -13,7 +13,7 @@ var ActionDateCmd = &cobra.Command{
 	Long:  `date will print the date of all matched entries`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
 		dateFormat, err := cmd.Flags().GetString("date-format")
 		checkArg(err)
 

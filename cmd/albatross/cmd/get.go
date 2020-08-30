@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/albatross-org/go-albatross/entries"
 
@@ -20,8 +23,9 @@ var (
 
 // GetCmd represents the get command
 var GetCmd = &cobra.Command{
-	Use:   "get [action]",
-	Short: "get entries matching specific criteria and perform actions on them",
+	Use:     "get <filters> [action]",
+	Short:   "get entries matching specific criteria and perform actions on them",
+	Aliases: []string{"search", "query"},
 	Long: `get finds entries matching specific criteria and allows you to run actions on them, such as
 
 - Printing their links
@@ -43,6 +47,35 @@ Some examples:
 	# Sort all entries where you mention cats in reverse alphabetical order.
 	$ albatross get --substring "cat" --sort "alpha" --rev
 	
+The syntax of a get command is:
+
+	albatross get --<filters> [action]
+
+Filters are flags which allow or disallow entries. For example:
+
+	--tag "@?food"
+
+Will only allow entries containing the tag "@?food". Furthermore,
+
+	--tag "@?food" --path "notes"
+
+Will only allow entries containing the tag "@?food" AND that are from the "notes/" path. So each subsequent
+filter further restricts the amount of entries that can be matched. However, this leads to a difficulty: what
+if you wish to specify multiple filters which will allow entries matching either criteria? In other words, what if
+you want OR instead of AND?
+
+In order to achieve this, some flags allow syntax like this:
+
+	--path "notes OR school"
+
+This will match entries from the path "notes/" or "school/". The filters that support this feature are:
+
+	--path     --path-exact     --path-not     --path-exact-not
+	--title    --title-exact    --title-not    --title-exact-not
+	--contents --contents-exact --contents-not --contents-exact-not
+
+You can also change the delimeter used from " OR " using the --delimeter flag.
+
 By default, the command will print all the entries to all the paths that it matched. However, you can do
 much more. 'Actions' are mini-programs that operate on lists of entries. For all available entries, see
 the available subcommands.`,
@@ -54,26 +87,55 @@ the available subcommands.`,
 func init() {
 	rootCmd.AddCommand(GetCmd)
 
-	GetCmd.PersistentFlags().String("date-format", "2006-01-02", "date format for parsing from and until")
-
 	// Filters
 	GetCmd.PersistentFlags().IntP("number", "n", -1, "number of entries to return, -1 means all")
 	GetCmd.PersistentFlags().StringP("from", "f", "", "only show entries with creation dates after this")
 	GetCmd.PersistentFlags().StringP("until", "u", "", "only show entries with creation dates before this")
-	GetCmd.PersistentFlags().StringSliceP("path", "p", []string{}, "paths to allow")
-	GetCmd.PersistentFlags().StringSliceP("title", "t", []string{}, "titles to allow")
-	GetCmd.PersistentFlags().StringSliceP("substring", "s", []string{}, "substrings to allow")
-	GetCmd.PersistentFlags().StringSliceP("tag", "a", []string{}, "tags to allow")
 
-	GetCmd.PersistentFlags().BoolP("stdin", "i", false, "read list of paths from stdin")
+	GetCmd.PersistentFlags().Int("min-length", 0, "minimum length to allow")
+	GetCmd.PersistentFlags().Int("max-length", 0, "maximum length to allow")
+
+	GetCmd.PersistentFlags().StringSliceP("tag", "a", []string{}, "tags to allow")
+	GetCmd.PersistentFlags().StringSlice("tag-not", []string{}, "tags to disallow")
+
+	GetCmd.PersistentFlags().StringSliceP("path", "p", []string{}, "paths to allow, substring")
+	GetCmd.PersistentFlags().StringSliceP("title", "t", []string{}, "titles to allow, substring")
+	GetCmd.PersistentFlags().StringSliceP("contents", "c", []string{}, "contents to allow, substring")
+
+	GetCmd.PersistentFlags().StringSlice("path-exact", []string{}, "paths to allow, exact")
+	GetCmd.PersistentFlags().StringSlice("title-exact", []string{}, "titles to allow, exact")
+	GetCmd.PersistentFlags().StringSlice("contents-exact", []string{}, "substrings to allow, exact")
+
+	GetCmd.PersistentFlags().StringSlice("path-not", []string{}, "paths to disallow, substring")
+	GetCmd.PersistentFlags().StringSlice("title-not", []string{}, "titles to disallow, substring")
+	GetCmd.PersistentFlags().StringSlice("contents-not", []string{}, "contents to disallow, substring")
+
+	GetCmd.PersistentFlags().StringSlice("path-exact-not", []string{}, "paths to disallow, exact")
+	GetCmd.PersistentFlags().StringSlice("title-exact-not", []string{}, "titles to disallow, exact")
+	GetCmd.PersistentFlags().StringSlice("contents-exact-not", []string{}, "substrings to disallow, exact")
+
+	GetCmd.PersistentFlags().BoolP("stdin", "i", false, "read list of exact paths from stdin")
 
 	// Misc
 	GetCmd.PersistentFlags().BoolP("rev", "r", false, "reverse the list returned")
-	GetCmd.PersistentFlags().String("sort", "", "sorting scheme ('alpha', 'date' or '' for none)")
+	GetCmd.PersistentFlags().String("sort", "", "sorting scheme ('alpha', 'date' or '' for random)")
+	GetCmd.PersistentFlags().String("date-format", "2006-01-02 15:04", "date format for parsing from and until")
+	GetCmd.PersistentFlags().String("delimeter", " OR ", "delimeter to use for splitting up arguments")
+}
+
+// multiSplit is like strings.Split except it splits a slice of strings into a slice of slices.
+func multiSplit(strs []string, delimeter string) [][]string {
+	res := [][]string{}
+
+	for _, str := range strs {
+		res = append(res, strings.Split(str, delimeter))
+	}
+
+	return res
 }
 
 // getFromCommand runs a get query by parsing a command for flags.
-func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
+func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtered *entries.Collection, list entries.List) {
 	encrypted, err := store.Encrypted()
 	if err != nil {
 		log.Fatal(err)
@@ -95,61 +157,149 @@ func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
 	sort, err := cmd.Flags().GetString("sort")
 	checkArg(err)
 
-	// Get the filter flags
-	fNumber, err := cmd.Flags().GetInt("number")
+	delimeter, err := cmd.Flags().GetString("delimeter")
 	checkArg(err)
 
-	fFrom, err := cmd.Flags().GetString("from")
+	// Get the filter flags, generic
+	number, err := cmd.Flags().GetInt("number")
 	checkArg(err)
 
-	fUntil, err := cmd.Flags().GetString("until")
+	from, err := cmd.Flags().GetString("from")
 	checkArg(err)
 
-	fPath, err := cmd.Flags().GetStringSlice("path")
+	until, err := cmd.Flags().GetString("until")
 	checkArg(err)
 
-	fTitle, err := cmd.Flags().GetStringSlice("title")
+	minLength, err := cmd.Flags().GetInt("min-length")
 	checkArg(err)
 
-	fSubstring, err := cmd.Flags().GetStringSlice("substring")
+	maxLength, err := cmd.Flags().GetInt("max-length")
 	checkArg(err)
 
-	fTag, err := cmd.Flags().GetStringSlice("tag")
+	tags, err := cmd.Flags().GetStringSlice("tag")
 	checkArg(err)
 
-	fStdin, err := cmd.Flags().GetBool("stdin")
+	tagsExclude, err := cmd.Flags().GetStringSlice("tag-not")
+	checkArg(err)
+
+	// Get the filter flags, match vs not
+	pathsMatch, err := cmd.Flags().GetStringSlice("path")
+	checkArg(err)
+
+	pathsExact, err := cmd.Flags().GetStringSlice("path-exact")
+	checkArg(err)
+
+	pathsMatchNot, err := cmd.Flags().GetStringSlice("path-not")
+	checkArg(err)
+
+	pathsExactNot, err := cmd.Flags().GetStringSlice("path-exact-not")
+	checkArg(err)
+
+	titlesMatch, err := cmd.Flags().GetStringSlice("title")
+	checkArg(err)
+
+	titlesExact, err := cmd.Flags().GetStringSlice("title-exact")
+	checkArg(err)
+
+	titlesMatchNot, err := cmd.Flags().GetStringSlice("title-not")
+	checkArg(err)
+
+	titlesExactNot, err := cmd.Flags().GetStringSlice("title-exact-not")
+	checkArg(err)
+
+	contentsMatch, err := cmd.Flags().GetStringSlice("contents")
+	checkArg(err)
+
+	contentsExact, err := cmd.Flags().GetStringSlice("contents-exact")
+	checkArg(err)
+
+	contentsMatchNot, err := cmd.Flags().GetStringSlice("contents-not")
+	checkArg(err)
+
+	contentsExactNot, err := cmd.Flags().GetStringSlice("contents-exact-not")
+	checkArg(err)
+
+	stdin, err := cmd.Flags().GetBool("stdin")
 	checkArg(err)
 
 	// Parse dates using format
-	var fFromDate, fUntilDate time.Time
+	var fromDate, untilDate time.Time
 
-	if fFrom != "" {
-		fFromDate, err = time.Parse(dateFormat, fFrom)
+	if from != "" {
+		fromDate, err = time.Parse(dateFormat, from)
 		if err != nil {
-			log.Fatalf("Can't parse %s using format %s: %s", fFrom, dateFormat, err)
+			log.Fatalf("Can't parse %s using format %s: %s", from, dateFormat, err)
 		}
 	}
 
-	if fUntil != "" {
-		fUntilDate, err = time.Parse(dateFormat, fFrom)
+	if until != "" {
+		untilDate, err = time.Parse(dateFormat, until)
 		if err != nil {
-			log.Fatalf("Can't parse %s using format %s: %s", fUntil, dateFormat, err)
+			log.Fatalf("Can't parse %s using format %s: %s", until, dateFormat, err)
 		}
+	}
+
+	// Build the query
+	query := entries.Query{
+		From:  fromDate,
+		Until: untilDate,
+
+		MinLength: minLength,
+		MaxLength: maxLength,
+
+		Tags:        tags,
+		TagsExclude: tagsExclude,
+
+		ContentsExact:        multiSplit(contentsExact, delimeter),
+		ContentsMatch:        multiSplit(contentsMatch, delimeter),
+		ContentsExactExclude: multiSplit(contentsExactNot, delimeter),
+		ContentsMatchExclude: multiSplit(contentsMatchNot, delimeter),
+
+		PathsExact:        multiSplit(pathsExact, delimeter),
+		PathsMatch:        multiSplit(pathsMatch, delimeter),
+		PathsExactExclude: multiSplit(pathsExactNot, delimeter),
+		PathsMatchExclude: multiSplit(pathsMatchNot, delimeter),
+
+		TitlesExact:        multiSplit(titlesExact, delimeter),
+		TitlesMatch:        multiSplit(titlesMatch, delimeter),
+		TitlesExactExclude: multiSplit(titlesExactNot, delimeter),
+		TitlesMatchExclude: multiSplit(titlesMatchNot, delimeter),
 	}
 
 	// Get stdin paths
-	var pathsExact []string
-	if fStdin {
+	if stdin {
 		stdin, err := ioutil.ReadAll(os.Stdin)
 		if err != nil {
 			log.Fatalf("Can't read stdin: %s", err)
 		}
 
-		pathsExact = strings.Split(string(stdin), "\n")
+		query.PathsExact = append(query.PathsExact, strings.Split(string(stdin), "\n"))
 	}
 
-	// Get the list
-	collection, list := get(fFromDate, fUntilDate, fPath, pathsExact, fTitle, fTag, fSubstring)
+	if log.IsLevelEnabled(logrus.TraceLevel) {
+		queryJSON, err := json.MarshalIndent(query, "", "\t")
+		if err != nil {
+			log.Errorf("couldn't marshal query as JSON for tracing: %s", err)
+		}
+
+		log.Tracef("Query created from command: %s", string(queryJSON))
+	}
+
+	collection, err = store.Collection()
+	if err != nil {
+		log.Fatalf("Couldn't parse Albatross store to collection: %s", err)
+	}
+
+	start := time.Now()
+
+	filtered, err = collection.Filter(query.Filter())
+	if err != nil {
+		log.Fatalf("Couldn't run filter on Albatross store: %s", err)
+	}
+
+	end := time.Now()
+
+	list = filtered.List()
 
 	switch sort {
 	case "alpha":
@@ -162,72 +312,13 @@ func getFromCommand(cmd *cobra.Command) (*entries.Collection, entries.List) {
 		list = list.Reverse()
 	}
 
-	if fNumber != -1 {
-		list = list.First(fNumber)
+	if number != -1 {
+		list = list.First(number)
 	}
 
-	return collection, list
-}
-
-// get gets all the entries matching certain criteria, as an entries.List. It also returns the original entries.Collection
-func get(from, until time.Time, pathsInclude []string, pathsExact []string, titles []string, tags []string, substrings []string) (*entries.Collection, entries.List) {
-	var err error
-	collection, err := store.Collection()
-
-	var originalCollection = collection
-
-	if err != nil {
-		log.Fatalf("Error parsing the Albatross store: %s", err)
+	if log.IsLevelEnabled(logrus.DebugLevel) {
+		log.Debugf("Query matched %d entries in %s.", len(list.Slice()), end.Sub(start))
 	}
 
-	if from != (time.Time{}) {
-		collection, err = collection.Filter(entries.FilterFrom(from))
-		if err != nil {
-			log.Fatalf("Error filtering 'from': %s", err)
-		}
-	}
-
-	if until != (time.Time{}) {
-		collection, err = collection.Filter(entries.FilterUntil(until))
-		if err != nil {
-			log.Fatalf("Error filtering 'until': %s", err)
-		}
-	}
-
-	if len(pathsInclude) != 0 {
-		collection, err = collection.Filter(entries.FilterPathsInclude(pathsInclude...))
-		if err != nil {
-			log.Fatalf("Error filtering 'paths': %s", err)
-		}
-	}
-
-	if len(pathsExact) != 0 {
-		collection, err = collection.Filter(entries.FilterPathsExact(pathsExact...))
-		if err != nil {
-			log.Fatalf("Error filtering 'paths': %s", err)
-		}
-	}
-
-	if len(titles) != 0 {
-		collection, err = collection.Filter(entries.FilterTitlesInclude(titles...))
-		if err != nil {
-			log.Fatalf("Error filtering 'titles': %s", err)
-		}
-	}
-
-	if len(tags) != 0 {
-		collection, err = collection.Filter(entries.FilterTagsInclude(tags...))
-		if err != nil {
-			log.Fatalf("Error filtering 'tags': %s", err)
-		}
-	}
-
-	if len(substrings) != 0 {
-		collection, err = collection.Filter(entries.FilterMatchInclude(substrings...))
-		if err != nil {
-			log.Fatalf("Error filtering 'substrings': %s", err)
-		}
-	}
-
-	return originalCollection, collection.List()
+	return collection, filtered, list
 }

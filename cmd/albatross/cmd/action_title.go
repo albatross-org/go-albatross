@@ -13,7 +13,8 @@ var ActionTitleCmd = &cobra.Command{
 	Long:  `title will display the titles of all matched entries`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
+		fmt.Println(len(list.Slice()))
 
 		for _, entry := range list.Slice() {
 			fmt.Println(entry.Title)

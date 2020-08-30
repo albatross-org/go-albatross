@@ -13,7 +13,7 @@ var ActionPathCmd = &cobra.Command{
 	Long:  `path will display the paths of all matched entries`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
 
 		for _, entry := range list.Slice() {
 			fmt.Println(entry.Path)

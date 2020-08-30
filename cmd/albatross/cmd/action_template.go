@@ -41,7 +41,7 @@ of entries itself, use the --all flag.
 	$ albatross get template --all '{{range .}}{{.Title}}{{end}}'`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
 
 		all, err := cmd.Flags().GetBool("all")
 		checkArg(err)

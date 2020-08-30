@@ -22,7 +22,7 @@ $ albatross get -p food/pizza update
 
 If multiple entries are matched, a list is displayed to choose from.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
 		var chosen *entries.Entry
 
 		customEditor, err := cmd.Flags().GetString("editor")

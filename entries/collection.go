@@ -153,11 +153,19 @@ func (collection *Collection) copy() *Collection {
 
 // Filter runs the filters specified on the entries collection. It returns a copy of the entries collection.
 func (collection *Collection) Filter(filters ...Filter) (*Collection, error) {
-	curr := collection
+	curr := collection.copy()
+	filter := FilterAnd(filters...)
 
-	for _, filter := range filters {
-		curr = curr.copy()
-		err := filter(curr)
+	remove := []*Entry{}
+
+	for _, entry := range collection.pathMap {
+		if !filter(entry) {
+			remove = append(remove, entry)
+		}
+	}
+
+	for _, entry := range remove {
+		err := curr.Delete(entry)
 		if err != nil {
 			return nil, err
 		}

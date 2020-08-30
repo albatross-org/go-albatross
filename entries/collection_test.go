@@ -106,17 +106,17 @@ func TestCollectionFilterPaths(t *testing.T) {
 	Nil(t, err, "adding all entries, err should be nil")
 	Equal(t, 6, collection.Len(), "there should be 6 entries in the collection")
 
-	collectionFood, err := collection.Filter(FilterPathsInclude("food/"))
+	collectionFood, err := collection.Filter(FilterPathsMatch("food/"))
 	Nil(t, err, "filtering for food only, err should be nil")
 	Equal(t, 3, collectionFood.Len(), "there should be 3 entries in the food-only collection")
 	Equal(t, 6, collection.Len(), "there should be stll be 6 entries in the orignal collection after filter")
 
-	collectionNoAnimals, err := collection.Filter(FilterPathsExlude("animals/"))
+	collectionNoAnimals, err := collection.Filter(FilterNot(FilterPathsMatch("animals/")))
 	Nil(t, err, "filtering for anyhting but animals, err should be nil")
 	Equal(t, 4, collectionNoAnimals.Len(), "there should be 4 entries in the no animals collection")
 	Equal(t, 6, collection.Len(), "there should be stll be 6 entries in the orignal collection after filter")
 
-	collectionNoPlants, err := collection.Filter(FilterPathsInclude("food/", "animals/"))
+	collectionNoPlants, err := collection.Filter(FilterPathsMatch("food/", "animals/"))
 	Nil(t, err, "filtering for anything but plants, err should be nil")
 	Equal(t, 5, collectionNoPlants.Len(), "there should be 5 entries in the no animals collection")
 	Equal(t, 6, collection.Len(), "there should be stll be 6 entries in the orignal collection after filter")
@@ -138,12 +138,12 @@ func TestCollectionFilterTitles(t *testing.T) {
 	Nil(t, err, "adding all entries, err should be nil")
 	Equal(t, 6, collection.Len(), "there should be 6 entries in the collection")
 
-	collectionPizzaOnly, err := collection.Filter(FilterTitlesInclude("Pizza"))
+	collectionPizzaOnly, err := collection.Filter(FilterTitlesMatch("Pizza"))
 	Nil(t, err, "filtering for entries called 'Pizza', err should be nil")
 	Equal(t, 1, collectionPizzaOnly.Len(), "there should be 1 entries in the pizza-only collection")
 	Equal(t, 6, collection.Len(), "there should be stll be 6 entries in the orignal collection after filter")
 
-	collectionNoPizza, err := collection.Filter(FilterTitlesExclude("Pizza"))
+	collectionNoPizza, err := collection.Filter(FilterNot(FilterTitlesMatch("Pizza")))
 	Nil(t, err, "filtering for everything not called 'Pizza', err should be nil")
 	Equal(t, 5, collectionNoPizza.Len(), "there should be 5 entries in the no-pizza collection")
 	Equal(t, 6, collection.Len(), "there should be stll be 6 entries in the orignal collection after filter")
@@ -160,17 +160,17 @@ func TestCollectionFilterTags(t *testing.T) {
 	Nil(t, err, "adding all entries, err should be nil")
 	Equal(t, 3, collection.Len(), "there should be 3 entries in the collection")
 
-	collectionWarmOnly, err := collection.Filter(FilterTagsInclude("warm"))
+	collectionWarmOnly, err := collection.Filter(FilterTags("warm"))
 	Nil(t, err, "filtering for entries warm food only, err should be nil")
 	Equal(t, 2, collectionWarmOnly.Len(), "there should be 2 entries in the warm-only collection")
 	Equal(t, 3, collection.Len(), "there should be stll be 3 entries in the orignal collection after filter")
 
-	collectionColdOnly, err := collection.Filter(FilterTagsInclude("cold"))
+	collectionColdOnly, err := collection.Filter(FilterTags("cold"))
 	Nil(t, err, "filtering for entries that are cold food only, err should be nil")
 	Equal(t, 1, collectionColdOnly.Len(), "there should be 1 entries in the cold-only collection")
 	Equal(t, 3, collection.Len(), "there should be stll be 3 entries in the orignal collection after filter")
 
-	collectionColdOnlyAlt, err := collection.Filter(FilterTagsExclude("warm"))
+	collectionColdOnlyAlt, err := collection.Filter(FilterNot(FilterTags("warm")))
 	Nil(t, err, "filtering for entries that are cold food only by excluding warm ones, err should be nil")
 	Equal(t, 1, collectionColdOnlyAlt.Len(), "there should be 1 entries in the cold-only collection")
 	Equal(t, 3, collection.Len(), "there should be stll be 3 entries in the orignal collection after filter")
@@ -192,12 +192,12 @@ func TestCollectionFilterMatch(t *testing.T) {
 	Nil(t, err, "adding all entries, err should be nil")
 	Equal(t, 6, collection.Len(), "there should be 6 entries in the collection")
 
-	collectionContainsIs, err := collection.Filter(FilterMatchInclude("is"))
+	collectionContainsIs, err := collection.Filter(FilterContentsMatch("is"))
 	Nil(t, err, "filtering for entries containing 'is', err should be nil")
 	Equal(t, 2, collectionContainsIs.Len(), "there should be 2 entries in the containing-is collection")
 	Equal(t, 6, collection.Len(), "there should be stll be 6 entries in the orignal collection after filter")
 
-	collectionComplexFilter, err := collection.Filter(FilterMatchInclude("is", "Whales"), FilterMatchExclude("Pizza"))
+	collectionComplexFilter, err := collection.Filter(FilterContentsMatch("is", "Whales"), FilterNot(FilterContentsMatch("Pizza")))
 	Nil(t, err, "filtering for everything containing 'is' or 'Whales' but not 'Pizza', err should be nil")
 	Equal(t, 2, collectionComplexFilter.Len(), "there should be 2 entries in the no-pizza collection")
 	Equal(t, 6, collection.Len(), "there should be stll be 6 entries in the orignal collection after filter")

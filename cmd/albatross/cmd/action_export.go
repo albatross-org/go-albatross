@@ -17,7 +17,7 @@ var ActionExportCmd = &cobra.Command{
 	Long:    `export will export entries in different formats, like JSON or TOML`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
 
 		metadata, err := cmd.Flags().GetBool("metadata")
 		checkArg(err)

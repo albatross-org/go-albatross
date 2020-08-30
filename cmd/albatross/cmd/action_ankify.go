@@ -17,7 +17,7 @@ import (
 // ActionAnkifyCmd represents the 'tags' action.
 var ActionAnkifyCmd = &cobra.Command{
 	Use:   "ankify",
-	Short: "print titles",
+	Short: "create anki flashcards",
 	Long: `ankify converts entries into anki flashcards.
 	
 Ankify will process all entries matched and convert headings with two
@@ -70,7 +70,7 @@ you can leverage the search field and create a filtered deck (Tools->Create Filt
 	path:*school/a-level/physics/topic8/electromagnetism`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		_, list := getFromCommand(cmd)
+		_, _, list := getFromCommand(cmd)
 
 		fixLatex, err := cmd.Flags().GetBool("fix-latex")
 		if err != nil {

@@ -50,7 +50,7 @@ you can use the --text flag:
 `,
 
 	Run: func(cmd *cobra.Command, args []string) {
-		collection, list := getFromCommand(cmd)
+		collection, _, list := getFromCommand(cmd)
 
 		outbound, err := cmd.Flags().GetBool("outbound")
 		checkArg(err)

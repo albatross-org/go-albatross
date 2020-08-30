@@ -5,35 +5,53 @@ import (
 	"time"
 )
 
-// Filter is a function which filters an Collection.
-type Filter func(*Collection) error
+// Filter is a function which returns true or false depending on whether an entry matches given criteria.
+type Filter func(*Entry) bool
 
-// FilterEntryAllower takes a function which returns true or false depending on whether the entry is allowd.
-func FilterEntryAllower(allower func(*Entry) bool) Filter {
-	return func(graph *Collection) error {
-		remove := []*Entry{}
-
-		for _, entry := range graph.pathMap {
-			if !allower(entry) {
-				remove = append(remove, entry)
+// FilterAnd takes multiple filters and creates a new filter. This new filter will only be true if all
+// the filters it contains return true, i.e. an AND operation.
+func FilterAnd(filters ...Filter) Filter {
+	return Filter(func(entry *Entry) bool {
+		for _, filter := range filters {
+			if !filter(entry) {
+				return false
 			}
 		}
 
-		for _, entry := range remove {
-			err := graph.Delete(entry)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
+		return true
+	})
 }
 
-// FilterPathsInclude will allow only entries from the given paths.
-func FilterPathsInclude(paths ...string) Filter {
-	return FilterEntryAllower(func(entry *Entry) bool {
+// FilterOr takes multiple filters and creates a new filter. This new filter will be true if any of the
+// filters it contains return true, i.e. an OR operation.
+func FilterOr(filters ...Filter) Filter {
+	return Filter(func(entry *Entry) bool {
+		for _, filter := range filters {
+			if filter(entry) {
+				return true
+			}
+		}
+
+		return false
+	})
+}
+
+// FilterNot takes a filter and negates it. For example,
+//   FilterNot(FilterPathsMatch)
+// will remove all matching paths. If multiple filters are given, they are converted into one using FilterAnd.
+func FilterNot(filters ...Filter) Filter {
+	return Filter(func(entry *Entry) bool {
+		filter := FilterAnd(filters...)
+		return !filter(entry)
+	})
+}
+
+// FilterPathsMatch will allow only entries from the given paths.
+// If a path is given which contains entries itself, all the entries inside that path are also allowed.
+func FilterPathsMatch(paths ...string) Filter {
+	return Filter(func(entry *Entry) bool {
 		allowed := false
+
 		for _, path := range paths {
 			if strings.HasPrefix(entry.Path, path) {
 				allowed = true
@@ -46,9 +64,11 @@ func FilterPathsInclude(paths ...string) Filter {
 }
 
 // FilterPathsExact will allow only an entry with the given path.
+// If a path is given which contains entries itself, only the parent path will be allowed.
 func FilterPathsExact(paths ...string) Filter {
-	return FilterEntryAllower(func(entry *Entry) bool {
+	return Filter(func(entry *Entry) bool {
 		allowed := false
+
 		for _, path := range paths {
 			if entry.Path == path {
 				allowed = true
@@ -60,13 +80,15 @@ func FilterPathsExact(paths ...string) Filter {
 	})
 }
 
-// FilterPathsExlude will remove all entries from the given paths.
-func FilterPathsExlude(paths ...string) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
-		allowed := true
-		for _, path := range paths {
-			if strings.HasPrefix(entry.Path, path) {
-				allowed = false
+// FilterTitlesMatch which match the given titles.
+// This function will allow entries where the title given is a substring.
+func FilterTitlesMatch(titles ...string) Filter {
+	return Filter(func(entry *Entry) bool {
+		allowed := false
+
+		for _, title := range titles {
+			if strings.Contains(entry.Title, title) {
+				allowed = true
 				break
 			}
 		}
@@ -75,11 +97,12 @@ func FilterPathsExlude(paths ...string) func(*Collection) error {
 	})
 }
 
-// FilterTitlesInclude only allows entries with the given titles.
-// This function matches full titles, not a substring.
-func FilterTitlesInclude(titles ...string) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
+// FilterTitlesExact which match the given titles.
+// This function matches exact titles, not substrings.
+func FilterTitlesExact(titles ...string) Filter {
+	return Filter(func(entry *Entry) bool {
 		allowed := false
+
 		for _, title := range titles {
 			if entry.Title == title {
 				allowed = true
@@ -91,26 +114,11 @@ func FilterTitlesInclude(titles ...string) func(*Collection) error {
 	})
 }
 
-// FilterTitlesExclude only allows entries that don't have the specified titles.
-// This function matches full titles, not a substring.
-func FilterTitlesExclude(titles ...string) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
-		allowed := true
-		for _, title := range titles {
-			if entry.Title == title {
-				allowed = false
-				break
-			}
-		}
-
-		return allowed
-	})
-}
-
-// FilterTagsInclude only allows entries with the given tags.
-func FilterTagsInclude(tags ...string) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
+// FilterTags only allows entries with the given tags.
+func FilterTags(tags ...string) Filter {
+	return Filter(func(entry *Entry) bool {
 		allowed := false
+
 		for _, tag := range tags {
 			for _, entryTag := range entry.Tags {
 				if entryTag == tag {
@@ -124,26 +132,9 @@ func FilterTagsInclude(tags ...string) func(*Collection) error {
 	})
 }
 
-// FilterTagsExclude only allows entries that don't have the specified tags.
-func FilterTagsExclude(tags ...string) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
-		allowed := true
-		for _, tag := range tags {
-			for _, entryTag := range entry.Tags {
-				if entryTag == tag {
-					allowed = false
-					break
-				}
-			}
-		}
-
-		return allowed
-	})
-}
-
-// FilterMatchInclude will allow entries with the given substrings.
-func FilterMatchInclude(substrings ...string) Filter {
-	return FilterEntryAllower(func(entry *Entry) bool {
+// FilterContentsMatch will allow entries with matching contents (i.e. the content contains one of the substrings specified).
+func FilterContentsMatch(substrings ...string) Filter {
+	return Filter(func(entry *Entry) bool {
 		allowed := false
 		for _, substring := range substrings {
 			if strings.Contains(entry.Contents, substring) {
@@ -156,13 +147,13 @@ func FilterMatchInclude(substrings ...string) Filter {
 	})
 }
 
-// FilterMatchExclude will allow entries that don't have the specified substrings.
-func FilterMatchExclude(substrings ...string) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
-		allowed := true
-		for _, substring := range substrings {
-			if strings.Contains(entry.Contents, substring) {
-				allowed = false
+// FilterContentsExact will allow entries with matching contents (i.e. the content contains one of the substrings specified).
+func FilterContentsExact(contents ...string) Filter {
+	return Filter(func(entry *Entry) bool {
+		allowed := false
+		for _, content := range contents {
+			if entry.Contents == content {
+				allowed = true
 				break
 			}
 		}
@@ -172,15 +163,119 @@ func FilterMatchExclude(substrings ...string) func(*Collection) error {
 }
 
 // FilterFrom will remove all entries before the given date.
-func FilterFrom(date time.Time) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
+func FilterFrom(date time.Time) Filter {
+	return Filter(func(entry *Entry) bool {
 		return !entry.Date.Before(date)
 	})
 }
 
 // FilterUntil will remove all entries after the given date.
-func FilterUntil(date time.Time) func(*Collection) error {
-	return FilterEntryAllower(func(entry *Entry) bool {
+func FilterUntil(date time.Time) Filter {
+	return Filter(func(entry *Entry) bool {
 		return !entry.Date.After(date)
 	})
+}
+
+// FilterLength will remove all entries under the given length.
+func FilterLength(length int) Filter {
+	return Filter(func(entry *Entry) bool {
+		return len(entry.Contents) < length
+	})
+}
+
+// Query represents a high-level specification of what entries should match.
+// For options like ContentsMatch, they are specified as a slice of slices. Each sub-slice contains the arguments
+// to the call to their matching filter function. So multiple slices will become multiple, seperate filter calls.
+// This means options within sub-slices act as OR -- entries matching either criteria will be allowed. The sub-slices
+// themselves will act as AND, meaning entries have to match all criteria to be allowed.
+//
+// Consider the difference between:
+//   TitlesMatch: [][]string{{"Pizza", "Bananas"}} // Match any titles with Pizza OR Bananas
+//   TitlesMatch: [][]string{{"Pizza"}, {"Bananas"}} // Match any titles with both Pizza AND Bananas
+type Query struct {
+	From  time.Time
+	Until time.Time
+
+	MinLength int
+	MaxLength int
+
+	Tags        []string
+	TagsExclude []string
+
+	ContentsExact        [][]string
+	ContentsMatch        [][]string
+	ContentsExactExclude [][]string
+	ContentsMatchExclude [][]string
+
+	PathsExact        [][]string
+	PathsMatch        [][]string
+	PathsExactExclude [][]string
+	PathsMatchExclude [][]string
+
+	TitlesExact        [][]string
+	TitlesMatch        [][]string
+	TitlesExactExclude [][]string
+	TitlesMatchExclude [][]string
+}
+
+// Filter creates a entries.Filter type for a query.
+func (q *Query) Filter() Filter {
+	filters := []Filter{}
+
+	if q.From != (time.Time{}) {
+		filters = append(filters, FilterFrom(q.From))
+	}
+
+	if q.Until != (time.Time{}) {
+		filters = append(filters, FilterUntil(q.Until))
+	}
+
+	if q.MinLength != 0 {
+		filters = append(filters, FilterLength(q.MinLength))
+	}
+
+	if q.MaxLength != 0 {
+		filters = append(filters, FilterNot(FilterLength(q.MaxLength)))
+	}
+
+	for _, c := range q.ContentsMatch {
+		filters = append(filters, FilterContentsMatch(c...))
+	}
+	for _, c := range q.ContentsExact {
+		filters = append(filters, FilterContentsExact(c...))
+	}
+	for _, c := range q.ContentsMatchExclude {
+		filters = append(filters, FilterNot(FilterContentsMatch(c...)))
+	}
+	for _, c := range q.ContentsExactExclude {
+		filters = append(filters, FilterNot(FilterContentsExact(c...)))
+	}
+
+	for _, c := range q.PathsMatch {
+		filters = append(filters, FilterPathsMatch(c...))
+	}
+	for _, c := range q.PathsExact {
+		filters = append(filters, FilterPathsExact(c...))
+	}
+	for _, c := range q.PathsMatchExclude {
+		filters = append(filters, FilterNot(FilterPathsMatch(c...)))
+	}
+	for _, c := range q.PathsExactExclude {
+		filters = append(filters, FilterNot(FilterPathsExact(c...)))
+	}
+
+	for _, c := range q.ContentsMatch {
+		filters = append(filters, FilterContentsMatch(c...))
+	}
+	for _, c := range q.ContentsExact {
+		filters = append(filters, FilterContentsExact(c...))
+	}
+	for _, c := range q.ContentsMatchExclude {
+		filters = append(filters, FilterNot(FilterContentsMatch(c...)))
+	}
+	for _, c := range q.ContentsExactExclude {
+		filters = append(filters, FilterNot(FilterContentsExact(c...)))
+	}
+
+	return FilterAnd(filters...)
 }
