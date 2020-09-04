@@ -264,17 +264,17 @@ func (q *Query) Filter() Filter {
 		filters = append(filters, FilterNot(FilterPathsExact(c...)))
 	}
 
-	for _, c := range q.ContentsMatch {
-		filters = append(filters, FilterContentsMatch(c...))
+	for _, c := range q.TitlesMatch {
+		filters = append(filters, FilterTitlesMatch(c...))
 	}
-	for _, c := range q.ContentsExact {
-		filters = append(filters, FilterContentsExact(c...))
+	for _, c := range q.TitlesExact {
+		filters = append(filters, FilterTitlesExact(c...))
 	}
-	for _, c := range q.ContentsMatchExclude {
-		filters = append(filters, FilterNot(FilterContentsMatch(c...)))
+	for _, c := range q.TitlesMatchExclude {
+		filters = append(filters, FilterNot(FilterTitlesMatch(c...)))
 	}
-	for _, c := range q.ContentsExactExclude {
-		filters = append(filters, FilterNot(FilterContentsExact(c...)))
+	for _, c := range q.TitlesExactExclude {
+		filters = append(filters, FilterNot(FilterTitlesExact(c...)))
 	}
 
 	return FilterAnd(filters...)
