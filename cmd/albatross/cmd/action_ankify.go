@@ -150,7 +150,10 @@ func extractFlashcards(entry *entries.Entry) ([][]string, error) {
 		} else {
 			child = child.NextSibling()
 		}
+	}
 
+	if len(flashcard) != 0 {
+		flashcards = append(flashcards, flashcard)
 	}
 
 	return flashcards, nil
