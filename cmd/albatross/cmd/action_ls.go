@@ -35,12 +35,6 @@ func mapToTree(rootKey string, stringTree map[string]interface{}, maxDepth int, 
 	return tree
 }
 
-// stripLongestCommonPrefix will remove the longest prefix that all slice items share.
-// If they do not share any prefix, it will do nothing.
-func stipLongestCommonPrefix(xs []string) []string {
-	return xs
-}
-
 // ActionLsCmd represents the 'ls' action.
 // This is some pretty ugly code, TODO.
 //
