@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/albatross-org/go-pgp v0.0.0-20200813143056-ef1792243365
+	github.com/disiqueira/gotree v1.0.0
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/goccy/go-graphviz v0.0.6
 	github.com/google/uuid v1.1.1 // indirect
