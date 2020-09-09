@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/albatross-org/go-albatross/entries"
@@ -14,12 +15,23 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
+// reMatchSingleLatex matches latex brackets of the form "$".
+// It breaks down like this:
+//   match a $
+//   either:
+//       match any character that isn't a "]" or "$"
+//       match anything followed by a character that isn't a "]" or "$"
+//   consume as few as possible
+//   match a closing "$"
+var reMatchSingleLatex = regexp.MustCompile(`\$([^\]\$]|[^\]\$].+?)\$`)
+var reMatchDoubleLatex = regexp.MustCompile(`\${2}(.+?)\${2}`)
+
 // ActionAnkifyCmd represents the 'tags' action.
 var ActionAnkifyCmd = &cobra.Command{
 	Use:   "ankify",
 	Short: "create anki flashcards",
 	Long: `ankify converts entries into anki flashcards.
-	
+
 Ankify will process all entries matched and convert headings with two
 question marks (??) into flashcards. For example:
 
@@ -39,7 +51,7 @@ Will become:
 	┌──────────────────────────────┐
 	│ The point in living is to... │
 	└──────────────────────────────┘
-	
+
 It outputs a TSV file, which can then be redirected into a file:
 
 	$ albatross get -t "My Flashcards" ankify > ~/.local/decks/entries.tsv
@@ -65,7 +77,7 @@ you can leverage the search field and create a filtered deck (Tools->Create Filt
 
 	# Revise a single topic
 	path:*school/a-level/physics/topic1*
-	
+
 	# Revise a specific piece of knowledge
 	path:*school/a-level/physics/topic8/electromagnetism`,
 
@@ -159,13 +171,53 @@ func extractFlashcards(entry *entries.Entry) ([][]string, error) {
 	return flashcards, nil
 }
 
-// fixFlashcardLatex replaces '$' and '$$' with '[$]' and '[$$]' respectively.
-// It does this in a very hacky way.
+// fixFlashcardLatex replaces '$' and '$$' with '[$]', '[$$]', '[\$]', '[\$$]' respectively.
+// This is to allow things like vim-markdown and pandoc to parse the latex properly whilst also allowing
+// proper rendering when using with Anki.
+// It does this in a very hacky way by alternating what it replaces text with on each match.
 func fixFlashcardLatex(flashcard []string) []string {
+
 	for i := range flashcard {
-		flashcard[i] = strings.ReplaceAll(flashcard[i], "$$", "[@@]")
-		flashcard[i] = strings.ReplaceAll(flashcard[i], "$", "[$]")
-		flashcard[i] = strings.ReplaceAll(flashcard[i], "[@@]", "[$$]")
+		text := flashcard[i]
+
+		doubleMatches := reMatchDoubleLatex.FindAllStringSubmatchIndex(text, -1)
+		replacements := make(map[string]string)
+		for _, doubleMatch := range doubleMatches {
+			// text[start:end] is something like "$$\mathbb{C}$$"
+			start := doubleMatch[0]
+			end := doubleMatch[1]
+
+			// Go forward/back two on each side to remove the surrounding '$'.
+			latex := text[start+2 : end-2]
+			modified := "[$$]" + latex + "[/$$]"
+
+			replacements[text[start:end]] = modified
+		}
+
+		for before, after := range replacements {
+			text = strings.ReplaceAll(text, before, after)
+		}
+
+		singleMatches := reMatchSingleLatex.FindAllStringSubmatchIndex(text, -1)
+		replacements = make(map[string]string)
+
+		for _, singleMatch := range singleMatches {
+			// text[start:end] is something like "$\mathbb{C}$"
+			start := singleMatch[0]
+			end := singleMatch[1]
+
+			// Go forward/back one on each side to remove the surrounding '$'.
+			latex := text[start+1 : end-1]
+			modified := "[$]" + latex + "[/$]"
+
+			replacements[text[start:end]] = modified
+		}
+
+		for before, after := range replacements {
+			text = strings.ReplaceAll(text, before, after)
+		}
+
+		flashcard[i] = text
 	}
 
 	return flashcard

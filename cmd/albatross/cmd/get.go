@@ -32,21 +32,21 @@ var GetCmd = &cobra.Command{
 - Printing their paths
 - Exporting them as JSON or YAML
 - Generating flashcards
-	
+
 Some examples:
 
 	# Get the entry about pizza.
 	$ albatross get --path food/pizza
-	
+
 	# Get all journal entries between Jan 2020 and Feb 2020.
 	$ albatross get --tag "@!journal" --from "2020-01-01 00:00AM" --until "2020-02-01 00:00AM"
-	
+
 	# Get all entries tagged "gcse", "physics" and "ankify".
 	$ albatross get --tag "@?gcse" --tag "@?physics" --tag "@?ankify"
-	
+
 	# Sort all entries where you mention cats in reverse alphabetical order.
 	$ albatross get --substring "cat" --sort "alpha" --rev
-	
+
 The syntax of a get command is:
 
 	albatross get --<filters> [action]
