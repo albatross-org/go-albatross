@@ -79,7 +79,27 @@ you can leverage the search field and create a filtered deck (Tools->Create Filt
 	path:*school/a-level/physics/topic1*
 
 	# Revise a specific piece of knowledge
-	path:*school/a-level/physics/topic8/electromagnetism`,
+	path:*school/a-level/physics/topic8/electromagnetism
+	
+Fine Tuning
+-----------
+
+Sometimes you want to convert the '$'s around an expression to something else. For example:
+
+	What are the dimensions of $\begin{matrix} 3 & 3 & 3 \\ 3 & 3 & 3 \end{matrix}$??
+	$$
+	2 \times 3
+	$$
+
+In this case I had issues with matricies not being rendered properly. In order to solve this, you can specify Anki to use MathJAX by using '\['
+and '\]' instead of [$] or [$$] and [/$] or [/$$]. This functionality is available through the following flags:
+
+	--single-open
+	--double-open
+	--single-close
+	--double-close
+
+	`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		_, _, list := getFromCommand(cmd)
@@ -89,11 +109,20 @@ you can leverage the search field and create a filtered deck (Tools->Create Filt
 			log.Fatalf("Error getting 'fix-latex' flag: %s", err)
 		}
 
-		generateAnkiFlashcards(list.Slice(), fixLatex)
+		singleOpen, err := cmd.Flags().GetString("single-open")
+		checkArg(err)
+		singleClose, err := cmd.Flags().GetString("single-close")
+		checkArg(err)
+		doubleOpen, err := cmd.Flags().GetString("double-open")
+		checkArg(err)
+		doubleClose, err := cmd.Flags().GetString("double-close")
+		checkArg(err)
+
+		generateAnkiFlashcards(list.Slice(), fixLatex, singleOpen, singleClose, doubleOpen, doubleClose)
 	},
 }
 
-func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool) {
+func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool, singleOpen, singleClose, doubleOpen, doubleClose string) {
 	csvw := csv.NewWriter(os.Stdout)
 	csvw.Comma = '\t'
 
@@ -107,7 +136,7 @@ func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool) {
 		for _, flashcard := range flashcards {
 			row := []string{flashcard[0], strings.Join(flashcard[1:], ""), entry.Path}
 			if fixLatex {
-				row = fixFlashcardLatex(row)
+				row = fixFlashcardLatex(row, singleOpen, singleClose, doubleOpen, doubleClose)
 			}
 
 			csvw.Write(row)
@@ -171,11 +200,11 @@ func extractFlashcards(entry *entries.Entry) ([][]string, error) {
 	return flashcards, nil
 }
 
-// fixFlashcardLatex replaces '$' and '$$' with '[$]', '[$$]', '[\$]', '[\$$]' respectively.
+// fixFlashcardLatex replaces '$' and '$$' with singleOpen, singleClose, doubleOpen and doubleClose.
 // This is to allow things like vim-markdown and pandoc to parse the latex properly whilst also allowing
 // proper rendering when using with Anki.
 // It does this in a very hacky way by alternating what it replaces text with on each match.
-func fixFlashcardLatex(flashcard []string) []string {
+func fixFlashcardLatex(flashcard []string, singleOpen, singleClose, doubleOpen, doubleClose string) []string {
 
 	for i := range flashcard {
 		text := flashcard[i]
@@ -189,7 +218,7 @@ func fixFlashcardLatex(flashcard []string) []string {
 
 			// Go forward/back two on each side to remove the surrounding '$'.
 			latex := text[start+2 : end-2]
-			modified := "[$$]" + latex + "[/$$]"
+			modified := doubleOpen + latex + doubleClose
 
 			replacements[text[start:end]] = modified
 		}
@@ -208,7 +237,7 @@ func fixFlashcardLatex(flashcard []string) []string {
 
 			// Go forward/back one on each side to remove the surrounding '$'.
 			latex := text[start+1 : end-1]
-			modified := "[$]" + latex + "[/$]"
+			modified := singleOpen + latex + singleClose
 
 			replacements[text[start:end]] = modified
 		}
@@ -227,4 +256,10 @@ func init() {
 	GetCmd.AddCommand(ActionAnkifyCmd)
 
 	ActionAnkifyCmd.Flags().Bool("fix-latex", true, "converts '$' and '$$' to '[$]' and '[$$]'")
+
+	ActionAnkifyCmd.Flags().String("single-open", "[$]", "what to convert opening '$' to")
+	ActionAnkifyCmd.Flags().String("single-close", "[/$]", "what to convert closing '$' to")
+	ActionAnkifyCmd.Flags().String("double-open", "[$$]", "what to convert opening '$$' to")
+	ActionAnkifyCmd.Flags().String("double-close", "[/$$]", "what to convert closing '$$' to")
+
 }

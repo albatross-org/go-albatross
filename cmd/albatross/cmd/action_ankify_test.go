@@ -41,7 +41,7 @@ func TestFixLatex(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		got := fixFlashcardLatex([]string{tc.in})[0]
+		got := fixFlashcardLatex([]string{tc.in}, "[$]", "[/$]", "[$$]", "[/$$]")[0]
 		assert.Equal(t, tc.out, got, "expected output latex to be correct")
 	}
 }
