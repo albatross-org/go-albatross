@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 )
 
@@ -60,6 +61,9 @@ The format of the TSV file is:
 
     <HEADING>	<QUESTION>	<PATH>
 
+Importing Into Anki
+-------------------
+
 In order to import this into Anki, open the application and click "Import File" at the bottom.
 You will need to create a new Note Type so that Anki handles the path correctly before you import. To do this:
 
@@ -91,15 +95,27 @@ Sometimes you want to convert the '$'s around an expression to something else. F
 	2 \times 3
 	$$
 
-In this case I had issues with matricies not being rendered properly. In order to solve this, you can specify Anki to use MathJAX by using '\['
-and '\]' instead of [$] or [$$] and [/$] or [/$$]. This functionality is available through the following flags:
+If you want to use MathJax instead of Latex in Anki, the syntax is not '[$$]' but '\[' and '\]'. In order to achieve this you can use the
+4 flags:
+	
+	--double-open "\[" (convert the start of a '$$...$$' block to '\[')
+	--double-close "\]" (convert the end of a '$$...$$' block to '\]')
 
-	--single-open
-	--double-open
-	--single-close
-	--double-close
+The following flags are also available:
 
-	`,
+	--single-open "X" (convert the start of a '$...$' block to 'X')
+	--single-close "Y" (convert the start of a '$...$' block to 'Y')
+
+Bugs
+----
+
+At the moment there is an issue with how backslashes are handled. The markdown processor, Goldmark, will convert something like '\\' to '\'.
+This means Latex expressions involving '\\', which triggers a line break, will not work properly. In order to temporarily fix this, it's
+necesary to double up and do 4: '\\\\'. For example:
+
+	What are the dimensions of $\begin{matrix} 3 & 3 & 3 \\\\ 3 & 3 & 3 \end{matrix}$??
+														 ^^^^
+`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		_, _, list := getFromCommand(cmd)
@@ -122,6 +138,7 @@ and '\]' instead of [$] or [$$] and [/$] or [/$$]. This functionality is availab
 	},
 }
 
+// generateAnkiFlashcards outputs a TSV file of flashcards from a list of entries.
 func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool, singleOpen, singleClose, doubleOpen, doubleClose string) {
 	csvw := csv.NewWriter(os.Stdout)
 	csvw.Comma = '\t'
@@ -146,19 +163,30 @@ func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool, singleOpen,
 	csvw.Flush()
 }
 
+// extractFlashcards takes an entry and extracts the flashcards from its contents.
 func extractFlashcards(entry *entries.Entry) ([][]string, error) {
-	md := goldmark.New()
+	md := goldmark.New(
+		goldmark.WithParserOptions(),
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(),
+		),
+	)
+
+	// Parse the contents into markdown.
 	parser := md.Parser()
 	renderer := md.Renderer()
-
 	contents := []byte(entry.Contents)
 	flashcards := [][]string{}
 
-	// var buf bytes.Buffer
 	rootAst := parser.Parse(text.NewReader(contents))
 	child := rootAst.FirstChild()
 
-	state := "none"
+	// The algorithm here is a little strange, and probably not a good iea.
+	// Read through the items in the document
+	// 	* if they're a heading ending with "??" we know that they're a flashcard, so store the current title as the first half of a flashcard
+	//  * if they're something else but we're currently processing a flashcard, we add the text to the end of the flashcard
+	//  * if we get to another heading then push the current flashcard to the list of all flashcards
+	state := "none" // Either "none" or "flashcard"
 	flashcard := []string{}
 
 	for child != nil {
@@ -261,5 +289,4 @@ func init() {
 	ActionAnkifyCmd.Flags().String("single-close", "[/$]", "what to convert closing '$' to")
 	ActionAnkifyCmd.Flags().String("double-open", "[$$]", "what to convert opening '$$' to")
 	ActionAnkifyCmd.Flags().String("double-close", "[/$$]", "what to convert closing '$$' to")
-
 }

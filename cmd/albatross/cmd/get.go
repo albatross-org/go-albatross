@@ -25,7 +25,7 @@ var (
 var GetCmd = &cobra.Command{
 	Use:     "get <filters> [action]",
 	Short:   "get entries matching specific criteria and perform actions on them",
-	Aliases: []string{"search", "query"},
+	Aliases: []string{"search", "query", "g"},
 	Long: `get finds entries matching specific criteria and allows you to run actions on them, such as
 
 - Printing their links

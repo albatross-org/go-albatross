@@ -1,4 +1,5 @@
 package entries
+
 import (
 	"strings"
 	"time"
@@ -235,6 +236,14 @@ func (q *Query) Filter() Filter {
 
 	if q.MaxLength != 0 {
 		filters = append(filters, FilterNot(FilterLength(q.MaxLength)))
+	}
+
+	if len(q.Tags) != 0 {
+		filters = append(filters, FilterTags(q.Tags...))
+	}
+
+	if len(q.TagsExclude) != 0 {
+		filters = append(filters, FilterNot(FilterTags(q.TagsExclude...)))
 	}
 
 	for _, c := range q.ContentsMatch {

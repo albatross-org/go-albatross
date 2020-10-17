@@ -32,7 +32,7 @@ type Entry struct {
 	// ModTime is the modification time for the entry.
 	// Note: this is not always accurate, since encrypting and decryting all the files will "modify" them. Therefore it cannot be used for sorting
 	// accurately.
-	ModTime time.Time `json:"date"`
+	ModTime time.Time `json:"mod_time"`
 
 	// Title of the entry.
 	Title string `json:"title"`
@@ -82,8 +82,6 @@ func NewEntryFromFile(originalPath string) (*Entry, error) {
 	if entry.Date == (time.Time{}) {
 		entry.Date = entry.ModTime
 	}
-
-
 
 	// Here we strip the path to the store itselft from the store.
 	// This means something like:

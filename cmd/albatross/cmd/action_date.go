@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ActionDateCmd represents the 'ls' action.
+// ActionDateCmd represents the 'date' action.
 var ActionDateCmd = &cobra.Command{
 	Use:   "date",
 	Short: "print date",

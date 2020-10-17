@@ -9,9 +9,12 @@ require (
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/albatross-org/go-pgp v0.0.0-20200813143056-ef1792243365
 	github.com/disiqueira/gotree v1.0.0
+	github.com/gin-contrib/cors v1.3.1
+	github.com/gin-gonic/gin v1.6.3
 	github.com/go-git/go-git/v5 v5.1.0
 	github.com/goccy/go-graphviz v0.0.6
 	github.com/google/uuid v1.1.1 // indirect
+	github.com/gorilla/mux v1.8.0
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect

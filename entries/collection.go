@@ -2,9 +2,6 @@ package entries
 
 import (
 	"fmt"
-
-	"github.com/goccy/go-graphviz"
-	"github.com/goccy/go-graphviz/cgraph"
 )
 
 // Collection represents a searchable collection of entries.
@@ -174,44 +171,44 @@ func (collection *Collection) Filter(filters ...Filter) (*Collection, error) {
 	return curr, nil
 }
 
-// Graph gets the graphviz representation of the Collection, mainly for debugging and visualisation purposes.
-func (collection *Collection) Graph() (*graphviz.Graphviz, *cgraph.Graph, error) {
-	g := graphviz.New()
+// // Graph gets the graphviz representation of the Collection, mainly for debugging and visualisation purposes.
+// func (collection *Collection) Graph() (*graphviz.Graphviz, *cgraph.Graph, error) {
+// 	g := graphviz.New()
 
-	viz, err := g.Graph(graphviz.Directed)
-	if err != nil {
-		return nil, nil, fmt.Errorf("couldn't create graphviz collection: %w", err)
-	}
+// 	viz, err := g.Graph(graphviz.Directed)
+// 	if err != nil {
+// 		return nil, nil, fmt.Errorf("couldn't create graphviz collection: %w", err)
+// 	}
 
-	entryNodeMap := make(map[*Entry]*cgraph.Node)
+// 	entryNodeMap := make(map[*Entry]*cgraph.Node)
 
-	for path, entry := range collection.pathMap {
-		n, err := viz.CreateNode(fmt.Sprintf("%s (%s)", path, entry.Title))
-		if err != nil {
-			return nil, nil, fmt.Errorf("couldn't create graphviz node: %w", err)
-		}
+// 	for path, entry := range collection.pathMap {
+// 		n, err := viz.CreateNode(fmt.Sprintf("%s (%s)", path, entry.Title))
+// 		if err != nil {
+// 			return nil, nil, fmt.Errorf("couldn't create graphviz node: %w", err)
+// 		}
 
-		entryNodeMap[entry] = n
-	}
+// 		entryNodeMap[entry] = n
+// 	}
 
-	for _, entry := range collection.pathMap {
-		links := collection.FindLinksTo(entry)
+// 	for _, entry := range collection.pathMap {
+// 		links := collection.FindLinksTo(entry)
 
-		for _, link := range links {
-			_, err := viz.CreateEdge(
-				fmt.Sprintf("%s => %s", link.Parent.Path, entry.Path),
-				entryNodeMap[link.Parent],
-				entryNodeMap[entry],
-			)
+// 		for _, link := range links {
+// 			_, err := viz.CreateEdge(
+// 				fmt.Sprintf("%s => %s", link.Parent.Path, entry.Path),
+// 				entryNodeMap[link.Parent],
+// 				entryNodeMap[entry],
+// 			)
 
-			if err != nil {
-				return nil, nil, fmt.Errorf("couldn't create graphviz edge: %w", err)
-			}
-		}
-	}
+// 			if err != nil {
+// 				return nil, nil, fmt.Errorf("couldn't create graphviz edge: %w", err)
+// 			}
+// 		}
+// 	}
 
-	return g, viz, nil
-}
+// 	return g, viz, nil
+// }
 
 // List converts the collection into an List.
 func (collection *Collection) List() List {
