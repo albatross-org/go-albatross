@@ -14,36 +14,28 @@ var ActionExportCmd = &cobra.Command{
 	Use:     "export",
 	Aliases: []string{"json"},
 	Short:   "export entries",
-	Long:    `export will export entries in different formats, like JSON or TOML`,
+	Long: `export will export entries in different formats, like JSON or YAML.
+	
+You can also export entries to an EPUB file but as this has additional options it is a subcommand:
+
+	$ albatross get -p school --sort 'date' export epub`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		_, _, list := getFromCommand(cmd)
-
-		metadata, err := cmd.Flags().GetBool("metadata")
-		checkArg(err)
 
 		format, err := cmd.Flags().GetString("format")
 		checkArg(err)
 
 		var out []byte
-		var toMarshal interface{}
-
-		if metadata {
-			metadatas := []map[string]interface{}{}
-			for _, entry := range list.Slice() {
-				metadatas = append(metadatas, entry.Metadata)
-			}
-
-			toMarshal = metadatas
-		} else {
-			toMarshal = list.Slice()
-		}
 
 		switch format {
 		case "json":
-			out, err = json.Marshal(toMarshal)
+			out, err = json.Marshal(list.Slice())
 		case "yaml":
-			out, err = yaml.Marshal(toMarshal)
+			out, err = yaml.Marshal(list.Slice())
+		case "epub":
+			fmt.Println("The correct command is: albatross get export epub")
+			os.Exit(1)
 		default:
 			fmt.Println("Invalid output format:", format)
 			fmt.Println("Currently supported are: json, yaml")
@@ -56,6 +48,7 @@ var ActionExportCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		// _ = out
 		fmt.Println(string(out))
 	},
 }
@@ -63,6 +56,5 @@ var ActionExportCmd = &cobra.Command{
 func init() {
 	GetCmd.AddCommand(ActionExportCmd)
 
-	ActionExportCmd.Flags().Bool("metadata", false, "only export metadata")
 	ActionExportCmd.Flags().String("format", "json", "format to export entries in (json, yaml)")
 }

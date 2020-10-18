@@ -77,6 +77,8 @@ func (es List) Sort(sortType SortType) List {
 		sortable = SortableByAlpha(entries)
 	case SortDate:
 		sortable = SortableByDate(entries)
+	case SortPath:
+		sortable = SortableByPathAlpha(entries)
 	}
 
 	sort.Sort(sortable)
@@ -93,6 +95,9 @@ const (
 
 	// SortDate uses date sorting for entries.
 	SortDate
+
+	// SortPath uses alphabetical sorting for paths.
+	SortPath
 )
 
 // SortableByAlpha implements sort.Interface for []*Entry based on the alphabetical ordering of titles.
@@ -104,6 +109,41 @@ func (es SortableByAlpha) Swap(i, j int) { es[i], es[j] = es[j], es[i] }
 func (es SortableByAlpha) Less(i, j int) bool {
 	iRunes := []rune(es[i].Title)
 	jRunes := []rune(es[j].Title)
+
+	max := len(iRunes)
+	if max > len(jRunes) {
+		max = len(jRunes)
+	}
+
+	for idx := 0; idx < max; idx++ {
+		ir := iRunes[idx]
+		jr := jRunes[idx]
+
+		lir := unicode.ToLower(ir)
+		ljr := unicode.ToLower(jr)
+
+		if lir != ljr {
+			return lir < ljr
+		}
+
+		// the lowercase runes are the same, so compare the original
+		if ir != jr {
+			return ir < jr
+		}
+	}
+
+	return false
+}
+
+// SortableByPathAlpha implements sort.Interface for []*Entry based on the alphabetical ordering of titles.
+// Courtesy of this StackOverflow answer: https://stackoverflow.com/questions/35076109/in-golang-how-can-i-sort-a-list-of-strings-alphabetically-without-completely-ig
+type SortableByPathAlpha []*Entry
+
+func (es SortableByPathAlpha) Len() int      { return len(es) }
+func (es SortableByPathAlpha) Swap(i, j int) { es[i], es[j] = es[j], es[i] }
+func (es SortableByPathAlpha) Less(i, j int) bool {
+	iRunes := []rune(es[i].Path)
+	jRunes := []rune(es[j].Path)
 
 	max := len(iRunes)
 	if max > len(jRunes) {

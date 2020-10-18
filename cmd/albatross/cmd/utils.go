@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -66,4 +67,11 @@ func edit(editor string, content string) (string, error) {
 	}
 
 	return string(newContent), nil
+}
+
+// hashString is a shorthand for a doing the SHA-1 hash of a string.
+func hashString(path string) string {
+	h := sha1.New()
+	h.Write([]byte(path))
+	return fmt.Sprintf("%x.xhtml", h.Sum(nil))
 }
