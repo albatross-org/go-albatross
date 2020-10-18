@@ -13,6 +13,7 @@ import (
 	"github.com/bmaupin/go-epub"
 	"github.com/spf13/cobra"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/renderer/html"
 	"gopkg.in/yaml.v2"
 )
@@ -42,7 +43,7 @@ It's often a good idea to sort entries when creating an EPUB because then the Ch
 		}
 
 		if title == "" {
-			title = "Albatross" + time.Now().Format("2006-01-02")
+			title = "Albatross " + time.Now().Format("2006-01-02 15:01")
 		}
 
 		outputDest, err := cmd.Flags().GetString("output")
@@ -74,7 +75,10 @@ func convertToEpub(collection *entries.Collection, list entries.List, title, aut
 	e := epub.NewEpub(title)
 	e.SetAuthor(author)
 
-	md := goldmark.New(goldmark.WithRendererOptions(html.WithXHTML()))
+	md := goldmark.New(
+		goldmark.WithRendererOptions(html.WithXHTML()),
+		goldmark.WithExtensions(extension.GFM, extension.Typographer),
+	)
 
 	info := `<h1>Info</h1>
 	<p>This EPUB was generated <pre>%s</pre> by the command <pre>%s</pre>matching<pre>%d</pre> entries.</p>
@@ -114,7 +118,7 @@ func convertToEpub(collection *entries.Collection, list entries.List, title, aut
 	}
 
 	for _, entry := range list.Slice() {
-		contents, title, path, err := epubEntryToXHTML(md, entry)
+		contents, title, path, err := epubEntryToXHTML(md, collection, entry)
 		if err != nil {
 			return nil, err
 		}
@@ -123,6 +127,11 @@ func convertToEpub(collection *entries.Collection, list entries.List, title, aut
 		if err != nil {
 			return nil, fmt.Errorf("error adding section for entry %s: %w", entry.Path, err)
 		}
+	}
+
+	_, err = e.AddSection(`<h1>Unknown</h1><p>The entry you linked to either doesn't exist or wasn't matched.</p>`, "Unknown", "unknown.xhtml", "")
+	if err != nil {
+		return nil, err
 	}
 
 	dir, err := ioutil.TempDir("", "")
@@ -255,9 +264,9 @@ func epubBuildPathSearch(list entries.List) string {
 	for _, entry := range sorted.Slice() {
 		out.WriteString("<li><a href='")
 		out.WriteString(hashString(entry.Path))
-		out.WriteString("'><pre>")
+		out.WriteString("'><kbd>")
 		out.WriteString(entry.Path)
-		out.WriteString("</pre></a></li>")
+		out.WriteString("</kbd></a></li>")
 	}
 
 	return out.String()
@@ -266,7 +275,7 @@ func epubBuildPathSearch(list entries.List) string {
 // epubEntryToXHTML creates the XHTML for an entry, ready to be placed into an EPUB.
 // This function returns the XHTML, the title and the path it should be written to, then an error if there
 // was one.
-func epubEntryToXHTML(md goldmark.Markdown, entry *entries.Entry) (xhtml string, title string, path string, err error) {
+func epubEntryToXHTML(md goldmark.Markdown, collection *entries.Collection, entry *entries.Entry) (xhtml string, title string, path string, err error) {
 	var buf bytes.Buffer
 
 	err = md.Convert([]byte(entry.Contents), &buf)
@@ -283,9 +292,21 @@ func epubEntryToXHTML(md goldmark.Markdown, entry *entries.Entry) (xhtml string,
 		metadata = []byte("(error marshalling metadata)")
 	}
 
-	contents := fmt.Sprintf("<h1>%s</h1>\n%s\n<hr />\n<pre>%s</pre>", title, buf.Bytes(), metadata)
+	entryContents := buf.String()
 
-	return contents, title, path, nil
+	for _, link := range entry.OutboundLinks {
+		linkedEntry := collection.ResolveLink(link)
+		text := entry.Contents[link.Loc[0]:link.Loc[1]]
+
+		if linkedEntry == nil {
+			entryContents = strings.ReplaceAll(entryContents, text, "<a href='unknown.xhtml'><kbd>"+text+"</kbd></a>")
+		} else {
+			location := hashString(linkedEntry.Path)
+			entryContents = strings.ReplaceAll(entryContents, text, "<a href='"+location+"'><kbd>"+text+"</kbd></a>")
+		}
+	}
+
+	return fmt.Sprintf("<h1>%s</h1>\n%s\n<hr />\n<pre>%s</pre>", title, entryContents, metadata), title, path, nil
 }
 
 func init() {
