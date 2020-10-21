@@ -306,7 +306,22 @@ func epubEntryToXHTML(md goldmark.Markdown, collection *entries.Collection, entr
 		}
 	}
 
-	return fmt.Sprintf("<h1>%s</h1>\n%s\n<hr />\n<pre>%s</pre>", title, entryContents, metadata), title, path, nil
+	contents := fmt.Sprintf("<h1>%s</h1>\n%s\n<hr />", title, entryContents)
+
+	backlinksText := `<h5>Links to this entry</h5><ul>`
+	backlinks := collection.FindLinksTo(entry)
+
+	if len(backlinks) != 0 {
+		for _, backlink := range backlinks {
+			backlinksText += "<li><a href='" + hashString(backlink.Parent.Path) + "'><kbd>" + backlink.Parent.Title + "</kbd></a>"
+		}
+
+		contents += "\n" + backlinksText + "</ul><hr />"
+	}
+
+	contents += "\n<pre>" + string(metadata) + "</pre>"
+
+	return contents, title, path, nil
 }
 
 func init() {
