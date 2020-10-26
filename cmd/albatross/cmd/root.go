@@ -119,7 +119,7 @@ See the README: https://github.com/albatross-org/go-albatross/cmd/albatross
 			fmt.Println("")
 		}
 
-		err = cmd.Help()
+		err = cmd.Usage()
 		if err != nil {
 			logrus.Fatal(err)
 		}
