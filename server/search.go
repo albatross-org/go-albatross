@@ -194,6 +194,4 @@ func (s *Server) searchHandler(c *gin.Context) {
 		"matched": filtered.Len(),
 		"entries": list.Slice(),
 	})
-
-	return
 }

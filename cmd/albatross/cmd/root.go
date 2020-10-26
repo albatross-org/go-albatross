@@ -29,14 +29,71 @@ var log *logrus.Logger
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "albatross",
-	Short: "Albatross is a distributed note-taking and journalling application.",
-	Long: `Albatross is a distributed note-taking and journalling application, optimised for usage by a single individual as a secure place for networked thoughts, ideas and information.
-	
-This program is a command line tool for interfacing with Albatross stores.
+	Short: "Albatross is a note-taking and journalling application.",
+	Long: `Albatross is a distributed note-taking and journalling application, optimised for usage by a single
+individual as a secure place for networked thoughts, ideas and information. You could think of it as a Zettelkasten
+or a memex.
 
-    $ albatross decrypt
-    $ albatross create food/pizza
-    $ albatross get -path food/pizza --update`,
+Based on a simple format that is plain text first and not reliant on any proprietary third party apps or software,
+Albatross makes the guarantee that your personal data will be safe and accessible with time.
+
+This program is a command line tool for interfacing with Albatross stores in a composable and succinct way.
+
+	$ albatross decrypt
+	$ albatross create food/pizza
+	$ albatross get --path food/pizza --update
+
+Setup
+-----
+
+See the README, https://github.com/albatross-org/go-albatross/albatross as a guide on how to setup an Albatross store.
+
+Basic Usage
+-----------
+
+	# Create an entry
+	$ albatross create food/pizza
+
+	# Update the entry
+	$ albatross get --path food/pizza update
+
+	# Encrypt the store using your public and private key
+	$ albatross encrypt
+
+	# Decrypt the store
+	$ albatross decrypt
+
+	# Search for all entries with a given tag
+	$ albatross get --tag "@!public"
+
+Entries
+-------
+
+Entries are Markdown files with a YAML frontmatter.
+
+	---
+	title: "My Entry"
+	date: "2020-10-26 16:03"
+	---
+
+	This is an example of an entry.
+
+If the title isn't specified, the first sentence is used as the title. If the date isn't specified, the modification
+time of the file is used.
+
+Links
+-----
+
+You can link to other entries using two different syntaxes:
+
+	- {{path/to/entry}}
+	- [[My Entry Title]]
+
+More Help
+---------
+
+See the README: https://github.com/albatross-org/go-albatross/cmd/albatross
+`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Store '%s':\n", storeName)
 		fmt.Println("  Path:", storePath)
@@ -62,7 +119,7 @@ This program is a command line tool for interfacing with Albatross stores.
 			fmt.Println("")
 		}
 
-		err = cmd.Usage()
+		err = cmd.Help()
 		if err != nil {
 			logrus.Fatal(err)
 		}

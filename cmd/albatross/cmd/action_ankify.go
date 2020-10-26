@@ -156,7 +156,11 @@ func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool, singleOpen,
 				row = fixFlashcardLatex(row, singleOpen, singleClose, doubleOpen, doubleClose)
 			}
 
-			csvw.Write(row)
+			// Something has gone very wrong.
+			err = csvw.Write(row)
+			if err != nil {
+				panic(fmt.Errorf("couldn't write flashcard to CSV: %w", err))
+			}
 		}
 	}
 
@@ -212,7 +216,12 @@ func extractFlashcards(entry *entries.Entry) ([][]string, error) {
 
 		} else if state == "flashcard" {
 			var buf bytes.Buffer
-			renderer.Render(&buf, contents, child)
+
+			err := renderer.Render(&buf, contents, child)
+			if err != nil {
+				return nil, err
+			}
+
 			flashcard = append(flashcard, strings.ReplaceAll(buf.String(), "\n", ""))
 			child = child.NextSibling()
 

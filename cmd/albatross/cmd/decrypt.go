@@ -57,5 +57,5 @@ func decryptStore() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("Done in %s.\n", time.Now().Sub(start))
+	fmt.Printf("Done in %s.\n", time.Since(start))
 }

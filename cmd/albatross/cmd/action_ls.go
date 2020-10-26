@@ -47,8 +47,37 @@ func mapToTree(rootKey string, stringTree map[string]interface{}, maxDepth int, 
 var ActionLsCmd = &cobra.Command{
 	Use:     "ls",
 	Aliases: []string{"tree"},
-	Short:   "list entries returned in a tree format",
-	Long:    `list entries returned in a tree format`,
+	Short:   "list entries returned",
+	Long: `list prints the entries matched in a search in a tree like format. For example:
+	
+	$ albatross get -p school/gcse ls
+	.
+	└── school
+		└── gcse
+			└── physics
+			│   ├── topic7
+			│   │   ├── electromagnetism
+			│   │   ├── revision-questions
+			│   │   ├── motor-effect
+			│   │   ├── motors
+			│   │   ├── transformers
+			│   │   ├── generators
+			│   │   ├── generator-effect
+			│   │   ├── loudspeakers
+			│   │   ├── microphones
+			│   │   ├── magnets
+			│   ├── topic8
+			│   │   ├── red-shift-and-big-bang
+			│   │   ├── solar-system-and-orbits
+			│   │   ├── life-cycle-of-stars
+			│   │   ├── revision-questions
+			│   ├── topic4
+			│       └── nuclear-fission
+			│       └── nuclear-fusion
+			└── results
+
+Currently, only printing the paths for entries is supported. In a future version you should be able to show more information.
+`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		_, _, list := getFromCommand(cmd)

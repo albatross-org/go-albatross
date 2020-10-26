@@ -115,7 +115,11 @@ func (s *Store) Create(path, content string) error {
 		return err
 	}
 
-	s.reload()
+	err = s.reload()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -146,7 +150,11 @@ func (s *Store) Update(path, content string) error {
 		return err
 	}
 
-	s.reload()
+	err = s.reload()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -180,6 +188,8 @@ func (s *Store) Attach(path, attachmentPath string) error {
 
 	err = copyFile(attachmentPath, attachmentDestinationPath)
 	if err != nil {
+		fmt.Fprintln(os.Stdout, attachmentPath)
+		fmt.Fprintln(os.Stdout, attachmentDestinationPath)
 		return fmt.Errorf("cannot copy attachment from %s to %s: %w", attachmentPath, attachmentDestinationPath, err)
 	}
 
@@ -188,7 +198,11 @@ func (s *Store) Attach(path, attachmentPath string) error {
 		return err
 	}
 
-	s.reload()
+	err = s.reload()
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -246,7 +260,10 @@ func (s *Store) Delete(path string) error {
 		return err
 	}
 
-	s.reload()
+	err = s.reload()
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -313,9 +330,10 @@ func (s *Store) unload() {
 }
 
 // reload is an unload followed by a load. It means changes made are reflected in the store's internal collection.
-func (s *Store) reload() {
+// It will return an error if load failed.
+func (s *Store) reload() error {
 	s.unload()
-	s.load()
+	return s.load()
 }
 
 // recordChange records a change to the store if there is a git repository
@@ -324,7 +342,7 @@ func (s *Store) recordChange(path, message string, a ...interface{}) error {
 		return nil // If we're not using Git, don't do anything.
 	}
 
-	if s.disableGit == true {
+	if s.disableGit {
 		return nil // If git has been disabled, also don't do anything
 	}
 

@@ -41,5 +41,5 @@ func encryptStore() {
 		logrus.Fatal(err)
 	}
 
-	fmt.Printf("done in %s\n", time.Now().Sub(start))
+	fmt.Printf("done in %s\n", time.Since(start))
 }

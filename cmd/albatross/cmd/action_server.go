@@ -24,7 +24,11 @@ var ActionServerCmd = &cobra.Command{
 		checkArg(err)
 
 		s := server.NewServer(collection)
-		s.Serve(port)
+		err = s.Serve(port)
+
+		if err != nil {
+			log.Error(err)
+		}
 	},
 }
 

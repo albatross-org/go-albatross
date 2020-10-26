@@ -21,12 +21,65 @@ import (
 // ActionExportEpubCmd represents the 'tags' action.
 var ActionExportEpubCmd = &cobra.Command{
 	Use:   "epub",
-	Short: "convert entries to an EPUB format",
+	Short: "generate EPUBs from matched entries",
 	Long: `epub converts matched entries into an EPUB format, ready for loading on to a device like a Kindle.
 	
 It's often a good idea to sort entries when creating an EPUB because then the Chapters will be in the correct order in the export.
 
-	$ albatross get -p school --sort export epub`,
+	$ albatross get -p school --sort 'date' export epub -o book.epub
+	
+The title is 'Albatross YYYY-MM-DD' by default and can be specified using the --book-title flag.
+
+The author is the command that was used to generate the book, 'such as albatross get -p school', though something different can
+be specified using the --book-author flag.
+
+The --output/-o flag controls the output location of the EPUB. If no location is specified, it will cause an error.
+
+Contents
+--------
+
+The generated EPUB has the following structure:
+
+- Info: A page containing information such as the number of entries matched and links to the other sections of the book.
+- Table of Contents: A chronological list of all entries with month and year headings.
+- Tags: A list of all entries grouped by tags.
+- Paths: A list of all entries grouped by path.
+- Entries: Each entry is then written as its own chapter. It contains the entry's content, as well as it's metadata and 
+  all links to different entries will work. It also contains a list of other entries that link to this entry (backlinks)
+  if any are present.
+
+Links
+-----
+
+Links will only work if the entry being linked to is also inside the entries matched by the search. For example, if you had
+a collection of journal entries with the path "journal/" and you generate an epub like so:
+
+	$ albatross get -p journal --sort 'date' export epub -o book.epub
+
+If you link to any recipes which are located at the "recipes/" path, the links will not work because they are not included in
+the original search. Furthermore, if you instead generated a cookbook with the command:
+
+	$ albatross get -p recipes --sort 'alpha' export epub -o book.epub
+
+Then the "Links to this Entry" section for all the recipes will not contain the journal entries which link to the original entry.
+This is because the journal entries are now not included in the search. If you wanted this, you could use the OR filter for path.
+
+	$ albatorss get -p "recipes OR journal" --sort 'date' export book.epub
+
+Which would generate a EPUB containing all entries beginning with the path 'recipes/' or 'journal/'
+
+Examples
+--------
+
+	$ albatross get -p recipes --sort 'alpha' export epub --book-title "Cookbook" --book-author "John Doe"
+	# An alphabetical cookbook containing entries at the path 'recipes/'
+
+	$ albatross get -p school --sort 'alpha' export epub --book-title "Notes"
+	# All the entries associated with school notes, if all your notes are located at the 'school/' path.
+
+	$ albatross get --sort 'date' export epub
+	# Every entry into the store, sorted chornologically.
+`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		_, collection, list := getFromCommand(cmd)
@@ -49,6 +102,12 @@ It's often a good idea to sort entries when creating an EPUB because then the Ch
 		outputDest, err := cmd.Flags().GetString("output")
 		checkArg(err)
 
+		if outputDest == "" {
+			fmt.Println("Please specify an output location using the -o flag.")
+			fmt.Println("For example: albatross get export epub -o book.epub")
+			os.Exit(1)
+		}
+
 		output, err := convertToEpub(collection, list, title, author, command)
 		if err != nil {
 			fmt.Println("Error when creating the EPUB:")
@@ -56,15 +115,11 @@ It's often a good idea to sort entries when creating an EPUB because then the Ch
 			os.Exit(1)
 		}
 
-		if outputDest != "" {
-			err = ioutil.WriteFile(outputDest, output, 0644)
-			if err != nil {
-				fmt.Println("Couldn't write to output destination:")
-				fmt.Println(err)
-				os.Exit(1)
-			}
-		} else {
-			fmt.Println(string(output))
+		err = ioutil.WriteFile(outputDest, output, 0644)
+		if err != nil {
+			fmt.Println("Couldn't write to output destination:")
+			fmt.Println(err)
+			os.Exit(1)
 		}
 	},
 }
@@ -160,27 +215,36 @@ func epubBuildTableOfContents(list entries.List) (string, error) {
 	sorted := list.Sort(entries.SortDate)
 
 	var out bytes.Buffer
-	var curr string
+	var currMonth string
+	var currYear string
 
 	out.WriteString("<h1>Table of Contents</h1>")
 
 	// Here we loop through the entries and print headings with the months.
 	for i, entry := range sorted.Slice() {
 		month := entry.Date.Format("January") // Using Go's date format syntax.
+		year := entry.Date.Format("2006")
 
 		// If the current month we're printing entries for has changed, write a new heading.
-		if month != curr {
+		if month != currMonth {
 			if i != 0 {
 				// We need to make sure to close the last list unless it's the first entry because
 				// in that case we don't have anything to close.
 				out.WriteString("</ul>")
 			}
 
-			out.WriteString("<h2>")
-			out.WriteString(month)
-			out.WriteString("</h2>")
+			if year != currYear {
+				out.WriteString("<h2>")
+				out.WriteString(year)
+				out.WriteString("</h2>")
+			}
 
-			curr = month
+			out.WriteString("<h3>")
+			out.WriteString(month)
+			out.WriteString("</h3>")
+
+			currMonth = month
+			currYear = year
 			out.WriteString("<ul>")
 		}
 

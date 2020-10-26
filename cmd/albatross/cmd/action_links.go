@@ -9,7 +9,7 @@ import (
 // ActionLinksCmd represents the 'tags' action.
 var ActionLinksCmd = &cobra.Command{
 	Use:   "links",
-	Short: "print links",
+	Short: "display the links inside an entry",
 	Long: `links will display all the links inside an entry
 	
 This command is often used in conjunction with 'albatross get -i'. By default it will
@@ -39,14 +39,25 @@ checking to see links to entries that don't yet exist.
 	# Or, using shorthand flags:
 	$ albatross get links -e
 	
-You can also display the entry that is linking to the other entry using the --outbound flag:
-
+	You can also display the entry that is linking to the other entry using the --outbound flag:
+	
 	$ albatross get links --outbound
+
+Combining the --dont-exist/-e and the --outbound/-o flags is useful for showing all entries which link
+to nonexistant entries. For example:
+
+	$ albatross get -p school links -eo
+	school/a-level/computing/syllabus -> [[Computing - Harvard vs Von Neumann Architecture]]
+	school/a-level/physics/lessons -> [[Physics - Calculating Acceleration Due to Gravity]]
+	school/a-level/physics/lessons -> [[Physics - Calculating Acceleration Due to Gravity]] 
 
 And finally to print the link text (such as [[Link]] or {{path/to/link}}) instead of the path itself,
 you can use the --text flag:
 
 	$ albatross get links --text
+
+This behaviour is implicit for the --dont-exist flag because there's no real path for a link to an entry
+using a title that doesn't exist. 
 `,
 
 	Run: func(cmd *cobra.Command, args []string) {

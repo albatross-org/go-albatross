@@ -39,8 +39,8 @@ func staticPassword(pass string) func() (string, error) {
 }
 
 func TestStoreFull(t *testing.T) {
-	dir, cleanup := tempTestDir(t)
-	defer cleanup()
+	dir, _ := tempTestDir(t)
+	// defer cleanup()
 
 	t.Logf("Temporary test dir: %s", dir)
 

@@ -38,7 +38,40 @@ Sprig (https://github.com/Masterminds/sprig) helper functions/pipelines are avai
 By default, the template is run against every entry matched sequentially. If you wish to access the list
 of entries itself, use the --all flag.
 
-	$ albatross get template --all '{{range .}}{{.Title}}{{end}}'`,
+	$ albatross get template --all '{{range .}}{{.Title}}{{end}}'
+	
+Context
+-------
+
+The template context is an Entry struct. This contains the following fields:
+
+	- .Path, string
+	  The path to the entry file.
+
+	- .Contents, string
+	  The contents of the file without front matter.
+
+	- .OriginalContents, string
+	  The contents of the file, includiong the front matter.
+
+	- .Tags, []string
+	  All the tags present in the document. For example, "@!journal".
+
+	- .OutboundLinks, []Link
+	  Links going from this entry to another one.
+
+	- .Date, time.Time
+	  The date extracted from the entry.
+
+	- .ModTime, time.Time
+	  The modification time for the entry. This is not always accurate, since encrypting and decryting all the
+	  files will "modify" them. Therefore it cannot be used for sorting accurately.
+
+	- .Title, string
+	  The title of the entry.
+
+	- .Metadata, map[string]interface{}
+	  All of the front matter. `,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		_, _, list := getFromCommand(cmd)
@@ -70,6 +103,11 @@ of entries itself, use the --all flag.
 			}
 
 			tmpl, err = tmpl.Parse(string(stdin))
+			if err != nil {
+				fmt.Println("Error parsing template from stdin:")
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 
 		if err != nil {

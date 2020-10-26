@@ -12,7 +12,20 @@ import (
 var ActionTagsCmd = &cobra.Command{
 	Use:   "tags",
 	Short: "print tags",
-	Long:  `tags will display the tags in entries`,
+	Long: `tags will display the tags in entries.
+	
+	$ albatross get -p school/a-level/further-maths tags
+	@?further-maths, @?latex-block-alt
+	@?further-maths, @?latex-block-alt
+	...
+
+The functionalities of this command can be achieved with the template command:
+
+	$ albatross get -p school/a-level/further-maths template '{{.Tags | join ", "}}'
+	@?further-maths, @?latex-block-alt
+	@?further-maths, @?latex-block-alt
+	...
+`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 		_, _, list := getFromCommand(cmd)

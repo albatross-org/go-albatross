@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// DirGraph returns an Collection built from a directory .
+// DirGraph returns an Collection built from a directory.
 // It will return an Collection, a list of errors that occured while parsing entries and finally an error that occured
 // when processing the directory or adding an entry.
 func DirGraph(path string) (graph *Collection, entryErrs []error, err error) {

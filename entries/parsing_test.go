@@ -101,10 +101,20 @@ This is some content.`
 
 func TestParseInferMissing(t *testing.T) {
 	p := newTestParser(t)
-	content := `Uh oh, I'm an entry without a title.`
-	entry := parseForTest(t, p, content)
+	tcs := []struct {
+		content       string
+		expectedTitle string
+	}{
+		{`Uh oh, I'm an entry without a title.`, `Uh oh, I'm an entry without a title`},
+		{`Uh oh, I'm an entry without a title.
 
-	Equal(t, "Uh oh, I'm an entry without a title", entry.Title)
+I've got some content too`, `Uh oh, I'm an entry without a title`},
+	}
+
+	for _, tc := range tcs {
+		entry := parseForTest(t, p, tc.content)
+		Equal(t, tc.expectedTitle, entry.Title)
+	}
 }
 
 func TestParseTags(t *testing.T) {
@@ -120,16 +130,19 @@ tags:
 This is some content. I'm a @!tag-inline-builtin. Now I'm a @?tag-inline-custom.`
 
 	entry := parseForTest(t, p, content)
-	Equal(
-		t,
-		[]string{
-			"@!tag-frontmatter-builtin",
-			"@?tag-frontmatter-custom",
-			"@!tag-inline-builtin",
-			"@?tag-inline-custom",
-		},
-		entry.Tags,
-	)
+	expected := map[string]bool{
+		"@!tag-frontmatter-builtin": true,
+		"@?tag-frontmatter-custom":  true,
+		"@!tag-inline-builtin":      true,
+		"@?tag-inline-custom":       true,
+	}
+
+	actual := map[string]bool{}
+	for _, tag := range entry.Tags {
+		actual[tag] = true
+	}
+
+	Equal(t, expected, actual)
 }
 
 func TestParseLinksTitleNoName(t *testing.T) {

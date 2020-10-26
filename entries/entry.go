@@ -20,7 +20,7 @@ type Entry struct {
 	OriginalContents string `json:"originalContents"`
 
 	// Tags are all the tags present in the document. For example, "@!journal".
-	Tags []string `json:"tags,nilasempty"`
+	Tags []string `json:"tags"`
 
 	// OutboundLinks are links going from this entry to another one.
 	// These are known when the entry is parsed.

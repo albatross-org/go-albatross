@@ -18,7 +18,7 @@ var ActionUpdateCmd = &cobra.Command{
 	Short: "update an entry",
 	Long: `update an entry from the command line
 	
-$ albatross get -p food/pizza update
+	$ albatross get -p food/pizza update
 
 If multiple entries are matched, a list is displayed to choose from.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -32,6 +32,7 @@ If multiple entries are matched, a list is displayed to choose from.`,
 
 		if length == 0 {
 			fmt.Println("No entries matched, nothing to update.")
+			os.Exit(0)
 		} else if length != 1 {
 			paths := []string{}
 			for _, entry := range list.Slice() {
@@ -84,7 +85,10 @@ func updateEntry(entry *entries.Entry, editorName string) {
 			logrus.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
 		}
 
-		f.Write([]byte(content))
+		_, err = f.Write([]byte(content))
+		if err != nil {
+			logrus.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
+		}
 
 		fmt.Println("Error updating entry. A copy of the updated file has been saved to:", f.Name())
 		fmt.Println(err)

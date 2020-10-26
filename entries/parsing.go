@@ -13,13 +13,13 @@ import (
 
 var (
 	// reFrontMatter matches the front matter of an entry.
-	reFrontMatter = regexp.MustCompile("^---\n(?:\n|.)+---\n+")
+	reFrontMatter = regexp.MustCompile(`^---\n(?:\n|.)+---\n+`)
 
 	// reInitialNewlines matches to any newlines at the beginning of a string.
-	reInitialNewlines = regexp.MustCompile("^\n+")
+	reInitialNewlines = regexp.MustCompile(`^\n+`)
 
 	// reInitialSentence matches to the first sentence in a string.
-	reInitialSentence = regexp.MustCompile("^(.*?)[\\.!\\?\\n](?:\\s|$)")
+	reInitialSentence = regexp.MustCompile(`^(.*?)[\.!\?\n](?:\s|$)`)
 
 	// reLinkTitleNoName matches to links which specify only the other entry's title, e.g. "[[Pizza]]" or "[[Ice Cream]]"
 	// Group 1 is the title of the entry that is being linked to.
@@ -74,7 +74,7 @@ func NewParser(dateLayout, builtinTagPrefix, customTagPrefix string) (Parser, er
 	}, nil
 }
 
-// err creates a new error with the default values filled in.
+// err creates a new ErrEntryParseFailed with the default values filled in.
 func (p Parser) err(path string, format string, a ...interface{}) error {
 	return ErrEntryParseFailed{
 		Path: path,
@@ -91,16 +91,20 @@ func (p Parser) err(path string, format string, a ...interface{}) error {
 func (p Parser) Parse(path, content string) (*Entry, error) {
 	var entry = &Entry{}
 
+	// Extract the front matter text from the file and return the entry's content without the front matter present
 	frontMatter, strippedContent, err := p.extractFrontMatter(path, content)
 	if err != nil {
 		return nil, err
 	}
 
+	// Attempt to parse the front matter into a YAMLFrontMatter struct. This is because we know the types of the Title,
+	// Tags and Date keys.
 	concrete, err := p.parseFrontMatterConcrete(path, frontMatter)
 	if err != nil {
 		return nil, err
 	}
 
+	// If we have no title specified in the front matter (concrete.Title), use the first sentence as the title of the entry.
 	if concrete.Title == "" {
 		title, err := p.getFirstSentence(path, strippedContent)
 		if err != nil {
@@ -112,9 +116,10 @@ func (p Parser) Parse(path, content string) (*Entry, error) {
 		entry.Title = concrete.Title
 	}
 
-	if concrete.Date == "" {
-		// This is left to the responsibility of NewEntry as it has access to the ModTime of the file.
-	} else {
+	// If the date key in the front matter wasn't empty, we use that value to set the date of the entry. Later, in the
+	// NewEntryFromFile function, we will set the date to the modification time of the file if no date was specified
+	// explicitly.
+	if concrete.Date != "" {
 		d, err := time.Parse(p.dateLayout, concrete.Date)
 		if err != nil {
 			return nil, p.err(path, "couldn't parse date '%s' with layout '%s': %w", concrete.Date, p.dateLayout, err)
@@ -123,6 +128,12 @@ func (p Parser) Parse(path, content string) (*Entry, error) {
 		entry.Date = d
 	}
 
+	// Now we've extracted the "concrete" front matter, i.e. the key values we know the types of, we then parse the front
+	// matter also into a map[string]interface{} -- this means that additional front matter information specified by the user
+	// can be accessed.
+	// A side effect is that we end up storing the title, date and tags for the entry twice; once in entry.Title and also in
+	// entry.Metadata["title"]. However, entry.Title is a string whereas entry.Metadata["title"] cannot be used without a
+	// type assertion as it's an interface{}.
 	mapFrontMatter, err := p.parseFrontMatterMap(path, frontMatter)
 	if err != nil {
 		return nil, err
@@ -131,14 +142,28 @@ func (p Parser) Parse(path, content string) (*Entry, error) {
 	entry.Metadata = mapFrontMatter
 	entry.Contents = strippedContent
 	entry.OriginalContents = content
-	entry.Tags = append(entry.Tags, concrete.Tags...)
+
+	// Here we deal with tags. We don't want duplicates so we initialise a new map which stores the tags present in the entry.
+	// Setting the same tag twice will only result in one map entry so it acts like a set.
+	tagMap := make(map[string]bool)
+	for _, tag := range concrete.Tags {
+		tagMap[tag] = true
+	}
 
 	tags, err := p.parseTags(path, strippedContent)
 	if err != nil {
 		return nil, err
 	}
 
-	entry.Tags = append(entry.Tags, tags...)
+	for _, tag := range tags {
+		tagMap[tag] = true
+	}
+
+	// Now we put the tags in the map into the entry.Tags field of the struct.
+	for tag := range tagMap {
+		entry.Tags = append(entry.Tags, tag)
+	}
+
 	entry.OutboundLinks = p.parseLinks(path, strippedContent)
 	for i := range entry.OutboundLinks {
 		entry.OutboundLinks[i].Parent = entry
@@ -215,7 +240,6 @@ func (p Parser) getFirstSentence(path, strippedContent string) (string, error) {
 // parseTags returns all the tags in the text. The prefixes are included.
 func (p Parser) parseTags(path, strippedContent string) ([]string, error) {
 	results := []string{}
-	// fmt.Fprintln(os.Stdout, "builtin MATCHES", reBuiltinPrefix.FindAllString(content, -1))
 
 	builtinMatches := p.reBuiltinTag.FindAllString(strippedContent, -1)
 	if builtinMatches != nil {

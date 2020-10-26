@@ -117,8 +117,8 @@ The default template is:
 
 		// Here we create an empty entry first, then update it.
 		// This means that an error like "EntryAlreadyExists" will come up now rather than
-		// after the entry has been created, which could lead to data loss.
-		err = store.Create(args[0], fmt.Sprintf(defaultEntry, contents, time.Now().Format("2006-01-02 15:04")))
+		// after the entry has been created, which could lead to data loss and be frustrating in general.
+		err = store.Create(args[0], contents)
 		if err != nil {
 			log.Fatal("Couldn't create entry: ", err)
 		}
@@ -135,7 +135,10 @@ The default template is:
 				logrus.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
 			}
 
-			f.Write([]byte(content))
+			_, err = f.Write([]byte(content))
+			if err != nil {
+				logrus.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
+			}
 
 			fmt.Println("Error creating entry. A copy has been saved to:", f.Name())
 			os.Exit(1)

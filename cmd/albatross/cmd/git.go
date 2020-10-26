@@ -12,20 +12,23 @@ import (
 // GitCmd represents the git command
 var GitCmd = &cobra.Command{
 	Use:   "git",
-	Short: "git lets you interface with git in an store",
+	Short: "interface with git in a store",
 	Long: `git lets you access git version control within the store.
 
 Basically, it's a shorthand for doing
-$ albatross decrypt && cd $ALBATROSS_DIR && git... && albatross encrypt
+
+	$ albatross decrypt && cd $ALBATROSS_DIR && git... && albatross encrypt
 
 For example:
-$ albatross git add .
-$ albatross git commit
-$ albatross git push
+
+	$ albatross git add .
+	$ albatross git commit
+	$ albatross git push
 
 To pass flags to git, use the "--" seperator.
-$ albatross git -- log --oneline
-$ albatross git -- commit -m "commit message"`,
+
+	$ albatross git -- log --oneline
+	$ albatross git -- commit -m "commit message"`,
 	Run: func(cmd *cobra.Command, args []string) {
 		encrypted, err := store.Encrypted()
 		if err != nil {
@@ -49,7 +52,10 @@ $ albatross git -- commit -m "commit message"`,
 		c.Stdout = os.Stdout
 		c.Stderr = os.Stderr
 
-		c.Run()
+		err = c.Run()
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
