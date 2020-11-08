@@ -28,10 +28,10 @@ var GetCmd = &cobra.Command{
 	Aliases: []string{"search", "query", "g"},
 	Long: `get finds entries matching specific criteria and allows you to run actions on them, such as
 
-- Printing their links
-- Printing their paths
-- Exporting them as JSON or YAML
-- Generating flashcards
+	- Printing their links
+	- Printing their paths
+	- Exporting them as JSON or YAML
+	- Generating flashcards
 
 Some examples:
 
