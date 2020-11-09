@@ -8,7 +8,6 @@ import (
 )
 
 // ActionTagsCmd represents the 'tags' action.
-// TODO: option to lump all the tags together
 var ActionTagsCmd = &cobra.Command{
 	Use:   "tags",
 	Short: "print tags",

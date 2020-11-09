@@ -157,8 +157,8 @@ func getTemplate(name string, contextStrings map[string]string) string {
 	context["date"] = time.Now()
 
 	templates, err := ioutil.ReadDir(filepath.Join(storePath, "templates"))
-	if err != nil {
-		logrus.Fatalf("error reading templates directory: %s", err)
+	if err != nil && name != "" {
+		log.Fatalf("Error reading templates directory: %s", err)
 		return ""
 	}
 
@@ -171,7 +171,7 @@ func getTemplate(name string, contextStrings map[string]string) string {
 			if templateName == name {
 				matchBytes, err := ioutil.ReadFile(filepath.Join(storePath, "templates", info.Name()))
 				if err != nil {
-					logrus.Fatalf("error reading template file %s: %s", filepath.Join(storePath, "templates", info.Name()), err)
+					log.Fatalf("error reading template file %s: %s", filepath.Join(storePath, "templates", info.Name()), err)
 				}
 
 				match = string(matchBytes)
@@ -179,7 +179,7 @@ func getTemplate(name string, contextStrings map[string]string) string {
 		}
 
 		if len(match) == 0 {
-			logrus.Fatalf("Template '%s' doesn't exist.", name)
+			log.Fatalf("Template '%s' doesn't exist.", name)
 		}
 	} else {
 		match = defaultEntry
@@ -188,14 +188,14 @@ func getTemplate(name string, contextStrings map[string]string) string {
 	tmpl := template.New("template").Delims("<(", ")>").Funcs(sprig.TxtFuncMap())
 	tmpl, err = tmpl.Parse(match)
 	if err != nil {
-		logrus.Fatalf("Error parsing template: %s", err)
+		log.Fatalf("Error parsing template: %s", err)
 	}
 
 	var out bytes.Buffer
 
 	err = tmpl.Execute(&out, context)
 	if err != nil {
-		logrus.Fatalf("Error executing template: %s", err)
+		log.Fatalf("Error executing template: %s", err)
 	}
 
 	return out.String()

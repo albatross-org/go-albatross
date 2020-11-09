@@ -92,7 +92,7 @@ You can link to other entries using two different syntaxes:
 More Help
 ---------
 
-See the README: https://github.com/albatross-org/go-albatross/cmd/albatross
+See the README: https://github.com/albatross-org/go-albatross/tree/master/cmd/albatross
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("Store '%s':\n", storeName)

@@ -1,7 +1,7 @@
 # `go-albatross`
 `go-albatross` is a Go implementation of the Albatross Core API.
 
-> To use `go-albatross` from the command line, you're probably looking for the [`albatross`](https://github.com/albatross-org/go-albatross/cmd/albatross) command line tool.
+> To use `go-albatross` from the command line, you're probably looking for the [`albatross`](./cmd/albatross) command line tool.
 
 ### Contributing
 This code, although functional, is still in it's early stages.
