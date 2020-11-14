@@ -21,7 +21,7 @@ var ActionDeleteCmd = &cobra.Command{
 
 By default, it will prompt you to confirm for every matched entry. This can be overriden with the 'force-delete' flag.
 
-	$ albatross get -c "the money is located" --force-delete
+	$ albatross get -c "the money is located" delete --force-delete
 	# Delete any entry mentioning where the money is located`,
 
 	Run: func(cmd *cobra.Command, args []string) {
