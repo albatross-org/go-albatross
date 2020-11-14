@@ -20,6 +20,7 @@ require (
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/icza/dyno v0.0.0-20200205103839-49cb13720835
 	github.com/manifoldco/promptui v0.7.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
