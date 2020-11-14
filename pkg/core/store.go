@@ -250,15 +250,18 @@ func (s *Store) Delete(path string) error {
 		}
 
 		if !info.IsDir() {
-			if !(s.repo == nil || s.disableGit == true) {
+			err = os.Remove(subpath)
+			if err != nil {
+				return err
+			}
+
+			if s.repo != nil && s.disableGit != true {
 				relSubpath := strings.TrimPrefix(subpath, s.entriesPath+"/")
 				_, err := s.worktree.Add(relSubpath)
 				if err != nil {
 					return fmt.Errorf("couldn't record removal %s: %w", relSubpath, err)
 				}
 			}
-
-			return os.Remove(subpath)
 		}
 
 		return nil
@@ -274,12 +277,7 @@ func (s *Store) Delete(path string) error {
 		}
 	}
 
-	err = s.reload()
-	if err != nil {
-		return err
-	}
-
-	if !(s.repo == nil || s.disableGit == true) {
+	if s.repo != nil && s.disableGit != true {
 		_, err = s.worktree.Commit(
 			fmt.Sprintf("(go-albatross) Delete %s", relPath),
 			&git.CommitOptions{
