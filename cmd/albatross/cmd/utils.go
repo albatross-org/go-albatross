@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"bufio"
 	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // getEditor gets the $EDITOR environment variable, defaulting to the argument specified if none has been set.
@@ -74,4 +76,34 @@ func hashString(path string) string {
 	h := sha1.New()
 	_, _ = h.Write([]byte(path))
 	return fmt.Sprintf("%x.xhtml", h.Sum(nil))
+}
+
+// confirmPrompt displays a prompt `s` to the user and returns a bool indicating yes / no
+// If the lowercased, trimmed input begins with anything other than 'y', it returns false
+// Courtesy https://gist.github.com/r0l1/3dcbb0c8f6cfe9c66ab8008f55f8f28b
+func confirmPrompt(s string) bool {
+	r := bufio.NewReader(os.Stdin)
+
+	for {
+		fmt.Printf("%s [y/n]: ", s)
+
+		res, err := r.ReadString('\n')
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Empty input (i.e. "\n")
+		if len(res) < 2 {
+			continue
+		}
+
+		switch strings.ToLower(strings.TrimSpace(res))[0] {
+		case 'y':
+			return true
+		case 'n':
+			return false
+		default:
+			fmt.Println("Please enter [y/n].")
+		}
+	}
 }

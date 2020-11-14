@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -34,7 +32,7 @@ By default, it will prompt you to confirm for every matched entry. This can be o
 			var confirmation bool
 
 			if !forceDelete {
-				confirmation = confirmDelete(fmt.Sprintf("Are you sure you want to delete %s?", entry.Path))
+				confirmation = confirmPrompt(fmt.Sprintf("Are you sure you want to delete %s?", entry.Path))
 			}
 
 			if confirmation || forceDelete {
@@ -58,34 +56,4 @@ func init() {
 	GetCmd.AddCommand(ActionDeleteCmd)
 
 	ActionDeleteCmd.Flags().Bool("force-delete", false, "do not prompt for deletion")
-}
-
-// confirmDelete displays a prompt `s` to the user and returns a bool indicating yes / no
-// If the lowercased, trimmed input begins with anything other than 'y', it returns false
-// Courtesy https://gist.github.com/r0l1/3dcbb0c8f6cfe9c66ab8008f55f8f28b
-func confirmDelete(s string) bool {
-	r := bufio.NewReader(os.Stdin)
-
-	for {
-		fmt.Printf("%s [y/n]: ", s)
-
-		res, err := r.ReadString('\n')
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Empty input (i.e. "\n")
-		if len(res) < 2 {
-			continue
-		}
-
-		switch strings.ToLower(strings.TrimSpace(res))[0] {
-		case 'y':
-			return true
-		case 'n':
-			return false
-		default:
-			fmt.Println("Please enter [y/n].")
-		}
-	}
 }

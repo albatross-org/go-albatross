@@ -39,8 +39,8 @@ func staticPassword(pass string) func() (string, error) {
 }
 
 func TestStoreFull(t *testing.T) {
-	dir, _ := tempTestDir(t)
-	// defer cleanup()
+	dir, cleanup := tempTestDir(t)
+	defer cleanup()
 
 	t.Logf("Temporary test dir: %s", dir)
 
@@ -63,7 +63,7 @@ This is an entry all about truffles. I love truffles so much, but they are a bit
 	}
 
 	t.Log("Attaching truffle photo...")
-	err = store.Attach("food/truffles", filepath.Join(dir, "testdata", "truffle.jpg"))
+	err = store.AttachCopy("food/truffles", filepath.Join(dir, "testdata", "truffle.jpg"))
 	Nil(t, err, "not expecting error when attaching truffles photo entry")
 	if err != nil {
 		t.Fatalf("not expecting error when getting collection from test store: %s", err)
