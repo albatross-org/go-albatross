@@ -276,7 +276,7 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 		query.PathsExact = append(query.PathsExact, strings.Split(string(stdin), "\n"))
 	}
 
-	if log.IsLevelEnabled(logrus.TraceLevel) {
+	if globalLog.IsLevelEnabled(logrus.TraceLevel) {
 		queryJSON, err := json.MarshalIndent(query, "", "\t")
 		if err != nil {
 			log.Errorf("couldn't marshal query as JSON for tracing: %s", err)
@@ -316,7 +316,7 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 		list = list.First(number)
 	}
 
-	if log.IsLevelEnabled(logrus.DebugLevel) {
+	if globalLog.IsLevelEnabled(logrus.DebugLevel) {
 		log.Debugf("Query matched %d entries in %s.", len(list.Slice()), end.Sub(start))
 	}
 

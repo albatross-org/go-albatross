@@ -5,8 +5,11 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
+
+var log *logrus.Entry = logrus.New().WithField("prefix", "albatross")
 
 // getConfigDir gets the user's configuration directory.
 // TODO: At the moment, this uses $XDG_CONFIG_HOME and falls back to
@@ -51,4 +54,9 @@ func parseConfigFile(path string) (*viper.Viper, error) {
 	}
 
 	return v, nil
+}
+
+// SetLogger sets the logger used by the package.
+func SetLogger(logger *logrus.Entry) {
+	log = logger
 }

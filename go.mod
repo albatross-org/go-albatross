@@ -22,16 +22,19 @@ require (
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/icza/dyno v0.0.0-20200205103839-49cb13720835
 	github.com/manifoldco/promptui v0.7.0
+	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/otiai10/copy v1.2.0
 	github.com/pelletier/go-toml v1.2.0
 	github.com/plus3it/gorecurcopy v0.0.1
+	github.com/prometheus/common v0.4.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.7.1
 	github.com/stephens2424/writerset v1.0.2 // indirect
 	github.com/stretchr/testify v1.4.0
+	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	github.com/yuin/goldmark v1.2.1
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/image v0.0.0-20200801110659-972c09e46d76 // indirect

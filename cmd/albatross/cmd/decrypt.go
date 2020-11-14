@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/albatross-org/go-albatross/encryption"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	albatross "github.com/albatross-org/go-albatross/pkg/core"
@@ -46,7 +45,7 @@ func decryptStore() {
 			fmt.Printf("Store '%s' is already decrypted.\n", storeName)
 			break
 		} else if err != nil {
-			logrus.Fatal(err)
+			log.Fatal(err)
 		}
 
 		break

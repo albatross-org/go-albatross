@@ -5,13 +5,13 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 
 	"github.com/albatross-org/go-albatross/entries"
-	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/viper"
 )
@@ -233,12 +233,31 @@ func (s *Store) Delete(path string) error {
 	// Here we go through all the files and directories in the path given.
 	// containsSubEntries will be set to true if the entry itself contains other entries nested in subdirectories.
 	err = filepath.Walk(path, func(subpath string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
 		if info.IsDir() && subpath != path {
-			containsSubEntries = true
-			return filepath.SkipDir
+			containsEntry, err := folderContainsEntry(subpath)
+			if err != nil {
+				return fmt.Errorf("couldn't determine whether folder in entry contains sub-entries: %w", err)
+			}
+
+			if containsEntry {
+				containsSubEntries = true
+				return filepath.SkipDir
+			}
 		}
 
 		if !info.IsDir() {
+			if !(s.repo == nil || s.disableGit == true) {
+				relSubpath := strings.TrimPrefix(subpath, s.entriesPath+"/")
+				_, err := s.worktree.Add(relSubpath)
+				if err != nil {
+					return fmt.Errorf("couldn't record removal %s: %w", relSubpath, err)
+				}
+			}
+
 			return os.Remove(subpath)
 		}
 
@@ -255,9 +274,24 @@ func (s *Store) Delete(path string) error {
 		}
 	}
 
-	err = s.recordChange(relPath, "Delete %s", relPath)
+	err = s.reload()
 	if err != nil {
 		return err
+	}
+
+	if !(s.repo == nil || s.disableGit == true) {
+		_, err = s.worktree.Commit(
+			fmt.Sprintf("(go-albatross) Delete %s", relPath),
+			&git.CommitOptions{
+				Author: &object.Signature{
+					Name: "go-albatross",
+					When: time.Now(),
+				},
+			},
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = s.reload()
@@ -290,7 +324,7 @@ func (s *Store) load() error {
 	}
 
 	for _, entryErr := range entryErrs {
-		logrus.Warn(entryErr)
+		log.Warn(entryErr)
 	}
 
 	s.coll = collection
@@ -338,12 +372,9 @@ func (s *Store) reload() error {
 
 // recordChange records a change to the store if there is a git repository
 func (s *Store) recordChange(path, message string, a ...interface{}) error {
-	if s.repo == nil {
-		return nil // If we're not using Git, don't do anything.
-	}
-
-	if s.disableGit {
-		return nil // If git has been disabled, also don't do anything
+	// If we're not using Git or Git has been disabled, don't do anything
+	if s.repo == nil || s.disableGit == true {
+		return nil
 	}
 
 	_, err := s.worktree.Add(path)

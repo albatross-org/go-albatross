@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig"
-	"github.com/sirupsen/logrus"
+	"github.com/albatross-org/go-albatross/pkg/core"
 
 	"github.com/spf13/cobra"
 )
@@ -54,7 +54,7 @@ to save typing:
 	---
 
 	### [[Running]]
-	* <(.distance)> mi @ !(.pace)!/mi
+	* <(.distance)> mi @ <(.pace)>/mi
 
 Notice the alternate syntax for templates, "<(" and ")>", opposed to Go's default "{{" and "}}". This is
 to prevent interference with Albatross' path links.
@@ -113,13 +113,18 @@ The default template is:
 
 		contextStrings["title"] = strings.Join(args[1:], " ")
 
-		contents := getTemplate(templateFile, contextStrings)
+		contents, defaultContents := getTemplate(templateFile, contextStrings)
 
 		// Here we create an empty entry first, then update it.
 		// This means that an error like "EntryAlreadyExists" will come up now rather than
 		// after the entry has been created, which could lead to data loss and be frustrating in general.
 		err = store.Create(args[0], contents)
 		if err != nil {
+			if _, ok := err.(core.ErrEntryAlreadyExists); ok {
+				fmt.Printf("Entry %s already exists.\n", args[0])
+				os.Exit(1)
+			}
+
 			log.Fatal("Couldn't create entry: ", err)
 		}
 
@@ -128,16 +133,28 @@ The default template is:
 			log.Fatal("Couldn't get content from editor: ", err)
 		}
 
+		// The user didn't actually make any changes from the default value of the template. This means that
+		// we shouldn't actually create the entry.
+		if content == defaultContents {
+			err = store.Delete(args[0])
+			if err != nil {
+				log.Fatal("Couldn't delete blank entry: ", err)
+			}
+
+			fmt.Printf("Entry %s left blank, not creating.\n", args[0])
+			os.Exit(0)
+		}
+
 		err = store.Update(args[0], content)
 		if err != nil {
 			f, err := ioutil.TempFile("", "albatross-recover")
 			if err != nil {
-				logrus.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
+				log.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
 			}
 
 			_, err = f.Write([]byte(content))
 			if err != nil {
-				logrus.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
+				log.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
 			}
 
 			fmt.Println("Error creating entry. A copy has been saved to:", f.Name())
@@ -148,7 +165,11 @@ The default template is:
 	},
 }
 
-func getTemplate(name string, contextStrings map[string]string) string {
+// getTemplate takes a template name and a map containing values to populate the given template with. It returns two things,
+// the output of executing the template (i.e. what the user wants) and also the output of executing the template with no
+// contextStrings. This is done so that the empty version can be compared later to see if the user actually wrote anything
+// and therefore whether it's needed to actually create an entry.
+func getTemplate(name string, contextStrings map[string]string) (string, string) {
 	var context = make(map[string]interface{})
 	for k, v := range contextStrings {
 		context[k] = v
@@ -159,7 +180,7 @@ func getTemplate(name string, contextStrings map[string]string) string {
 	templates, err := ioutil.ReadDir(filepath.Join(storePath, "templates"))
 	if err != nil && name != "" {
 		log.Fatalf("Error reading templates directory: %s", err)
-		return ""
+		return "", ""
 	}
 
 	var match string
@@ -192,13 +213,19 @@ func getTemplate(name string, contextStrings map[string]string) string {
 	}
 
 	var out bytes.Buffer
+	var outDefault bytes.Buffer
 
 	err = tmpl.Execute(&out, context)
 	if err != nil {
 		log.Fatalf("Error executing template: %s", err)
 	}
 
-	return out.String()
+	err = tmpl.Execute(&outDefault, map[string]string{})
+	if err != nil {
+		log.Fatalf("Error executing template: %s", err)
+	}
+
+	return out.String(), outDefault.String()
 }
 
 func init() {

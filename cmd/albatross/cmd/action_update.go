@@ -8,7 +8,6 @@ import (
 	"github.com/albatross-org/go-albatross/entries"
 	"github.com/manifoldco/promptui"
 
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -82,12 +81,12 @@ func updateEntry(entry *entries.Entry, editorName string) {
 	if err != nil {
 		f, tempErr := ioutil.TempFile("", "albatross-recover")
 		if tempErr != nil {
-			logrus.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
+			log.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
 		}
 
 		_, err = f.Write([]byte(content))
 		if err != nil {
-			logrus.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
+			log.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
 		}
 
 		fmt.Println("Error updating entry. A copy of the updated file has been saved to:", f.Name())

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 )
 
 // exists returns true if the given file exists in a file system.
@@ -34,4 +35,31 @@ func copyFile(source, dest string) error {
 	}
 
 	return nil
+}
+
+// folderContainsEntry returns true if a folder contains an entry.md file, no matter how nested it is.
+func folderContainsEntry(folder string) (bool, error) {
+	containsEntry := false
+
+	err := filepath.Walk(folder, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if info.Name() == "entry.md" {
+			containsEntry = true
+		}
+
+		if info.IsDir() && path != folder {
+			return filepath.SkipDir
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return containsEntry, nil
 }

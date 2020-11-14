@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	prefixed "github.com/x-cray/logrus-prefixed-formatter"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
@@ -24,7 +25,8 @@ var storeName string
 var storePath string
 
 var store *albatross.Store
-var log *logrus.Logger
+var globalLog *logrus.Logger
+var log *logrus.Entry
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -121,7 +123,7 @@ See the README: https://github.com/albatross-org/go-albatross/tree/master/cmd/al
 
 		err = cmd.Usage()
 		if err != nil {
-			logrus.Fatal(err)
+			log.Fatal(err)
 		}
 	},
 }
@@ -216,7 +218,7 @@ func initStore() {
 	var err error
 	store, err = albatross.Load(storePath)
 	if err != nil {
-		logrus.Fatal(err)
+		log.Fatal(err)
 	}
 
 	if disableGit {
@@ -226,12 +228,16 @@ func initStore() {
 
 // initLogging initialises the logger.
 func initLogging() {
-	log = logrus.New()
-
 	lvl, err := logrus.ParseLevel(logLvl)
 	if err != nil {
 		log.Fatalf("Invalid log level '%s'\nPlease choose from: trace, debug, info, warning, error, fatal, panic", logLvl)
 	}
 
-	log.SetLevel(lvl)
+	globalLog = logrus.New()
+	globalLog.SetLevel(lvl)
+	globalLog.Formatter = new(prefixed.TextFormatter)
+
+	albatross.SetLogger(log)
+	log = globalLog.WithField("prefix", "albatross")
+
 }
