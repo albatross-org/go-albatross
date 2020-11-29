@@ -279,20 +279,20 @@ func epubBuildTagSearch(collection *entries.Collection, list entries.List) (stri
 
 	out.WriteString("<h1>Tags</h1><ul>")
 	for tag := range tags {
-		out.WriteString("<li><pre><a href='#")
+		out.WriteString("<li><code><a href='#")
 		out.WriteString(hashString(tag))
 		out.WriteString("'>")
 		out.WriteString(tag)
-		out.WriteString("</a></pre></li>")
+		out.WriteString("</a></code></li>")
 	}
 	out.WriteString("</ul>")
 
 	for tag := range tags {
 		out.WriteString("<h2 id='")
 		out.WriteString(hashString(tag))
-		out.WriteString("'><pre>")
+		out.WriteString("'><code>")
 		out.WriteString(tag)
-		out.WriteString("</pre></h2><ul>")
+		out.WriteString("</code></h2><ul>")
 
 		filtered, err := collection.Filter(entries.FilterTags(tag))
 		if err != nil {
