@@ -121,6 +121,8 @@ Examples
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
+		fmt.Println("Successfully wrote EPUB to", outputDest)
 	},
 }
 
@@ -132,7 +134,7 @@ func convertToEpub(collection *entries.Collection, list entries.List, title, aut
 
 	md := goldmark.New(
 		goldmark.WithRendererOptions(html.WithXHTML()),
-		goldmark.WithExtensions(extension.GFM, extension.Typographer),
+		goldmark.WithExtensions(extension.GFM, extension.Typographer, extension.Footnote),
 	)
 
 	info := `<h1>Info</h1>
@@ -279,20 +281,20 @@ func epubBuildTagSearch(collection *entries.Collection, list entries.List) (stri
 
 	out.WriteString("<h1>Tags</h1><ul>")
 	for tag := range tags {
-		out.WriteString("<li><code><a href='#")
+		out.WriteString("<li><kbd><a href='#")
 		out.WriteString(hashString(tag))
 		out.WriteString("'>")
 		out.WriteString(tag)
-		out.WriteString("</a></code></li>")
+		out.WriteString("</a></kbd></li>")
 	}
 	out.WriteString("</ul>")
 
 	for tag := range tags {
 		out.WriteString("<h2 id='")
 		out.WriteString(hashString(tag))
-		out.WriteString("'><code>")
+		out.WriteString("'><kbd>")
 		out.WriteString(tag)
-		out.WriteString("</code></h2><ul>")
+		out.WriteString("</kbd></h2><ul>")
 
 		filtered, err := collection.Filter(entries.FilterTags(tag))
 		if err != nil {
