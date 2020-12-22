@@ -237,7 +237,6 @@ func initLogging() {
 	globalLog.SetLevel(lvl)
 	globalLog.Formatter = new(prefixed.TextFormatter)
 
-	albatross.SetLogger(log)
 	log = globalLog.WithField("prefix", "albatross")
-
+	albatross.SetLogger(log)
 }
