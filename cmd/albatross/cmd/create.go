@@ -77,6 +77,20 @@ The default template is:
 	date: "<(.date | date "2006-01-02 15:04")>"
 	---
 
+The --from-file option allows you to create an entry from a file. You are prompted to edit the file first, though this can
+be disabled using the --no-edit flag.
+
+	(file.md)
+	---
+	title: "My Awesome Copied File"
+	date: "2020-12-23 13:57"
+	---
+
+	(shell)
+	$ albatross new junk/copied-file --from-file file.md
+
+The above will create an entry at the path junk/copied-file that has the exact contents of file.md.
+
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 		encrypted, err := store.Encrypted()
@@ -98,10 +112,16 @@ The default template is:
 			editorName = customEditor
 		}
 
+		noEdit, err := cmd.Flags().GetBool("no-edit")
+		checkArg(err)
+
 		templateFile, err := cmd.Flags().GetString("template")
 		checkArg(err)
 
 		contextStrings, err := cmd.Flags().GetStringToString("context")
+		checkArg(err)
+
+		fromFile, err := cmd.Flags().GetString("from-file")
 		checkArg(err)
 
 		if len(args) == 0 {
@@ -113,7 +133,18 @@ The default template is:
 
 		contextStrings["title"] = strings.Join(args[1:], " ")
 
-		contents, defaultContents := getTemplate(templateFile, contextStrings)
+		var contents, defaultContents string
+		if fromFile != "" {
+			bytes, err := ioutil.ReadFile(fromFile)
+			if err != nil {
+				fmt.Printf("Error creating entry from file: %s\n", err)
+				os.Exit(1)
+			}
+
+			contents = string(bytes)
+		} else {
+			contents, defaultContents = getTemplate(templateFile, contextStrings)
+		}
 
 		// Here we create an empty entry first, then update it.
 		// This means that an error like "EntryAlreadyExists" will come up now rather than
@@ -128,14 +159,20 @@ The default template is:
 			log.Fatal("Couldn't create entry: ", err)
 		}
 
-		content, err := edit(editorName, contents)
-		if err != nil {
-			log.Fatal("Couldn't get content from editor: ", err)
+		var editedContent string
+
+		if !noEdit {
+			editedContent, err = edit(editorName, contents)
+			if err != nil {
+				log.Fatal("Couldn't get content from editor: ", err)
+			}
+		} else {
+			editedContent = contents
 		}
 
 		// The user didn't actually make any changes from the default value of the template. This means that
 		// we shouldn't actually create the entry.
-		if content == defaultContents {
+		if editedContent == defaultContents && fromFile == "" {
 			err = store.Delete(args[0])
 			if err != nil {
 				log.Fatal("Couldn't delete blank entry: ", err)
@@ -145,20 +182,22 @@ The default template is:
 			os.Exit(0)
 		}
 
-		err = store.Update(args[0], content)
-		if err != nil {
-			f, err := ioutil.TempFile("", "albatross-recover")
+		if !noEdit {
+			err = store.Update(args[0], editedContent)
 			if err != nil {
-				log.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
-			}
+				f, err := ioutil.TempFile("", "albatross-recover")
+				if err != nil {
+					log.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
+				}
 
-			_, err = f.Write([]byte(content))
-			if err != nil {
-				log.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
-			}
+				_, err = f.Write([]byte(editedContent))
+				if err != nil {
+					log.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
+				}
 
-			fmt.Println("Error creating entry. A copy has been saved to:", f.Name())
-			os.Exit(1)
+				fmt.Println("Error creating entry. A copy has been saved to:", f.Name())
+				os.Exit(1)
+			}
 		}
 
 		fmt.Println("Successfully created entry", args[0])
@@ -232,6 +271,8 @@ func init() {
 	rootCmd.AddCommand(CreateCmd)
 
 	CreateCmd.Flags().StringP("editor", "e", "", "Editor to use (defaults to $EDITOR, then vim)")
+	CreateCmd.Flags().Bool("no-edit", false, "don't edit the entry, create it straight away")
 	CreateCmd.Flags().StringP("template", "t", "", "Template file to use")
+	CreateCmd.Flags().StringP("from-file", "f", "", "If set to a file, create the entry from the file's contents")
 	CreateCmd.Flags().StringToStringP("context", "c", map[string]string{}, "Context for template")
 }
