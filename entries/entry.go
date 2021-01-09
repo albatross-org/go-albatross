@@ -39,6 +39,9 @@ type Entry struct {
 
 	// Metadata is all the front-matter.
 	Metadata map[string]interface{} `json:"metadata"`
+
+	// Attachments are a list of the attachments to the entry.
+	Attachments []Attachment
 }
 
 // NewEntryFromFile returns a new Entry given a file system and a path to the `entry.md` file in that file system.
@@ -89,6 +92,7 @@ func NewEntryFromFile(originalPath string) (*Entry, error) {
 	// becomes
 	// "journal/2020/04/10"
 	// Which is the format used by the rest of the program.
+	// 8 is used here as it's the length of the string 'entries/'
 	start := strings.Index(path, "entries")
 	if start != -1 {
 		path = path[start+8:]

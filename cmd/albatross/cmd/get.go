@@ -98,7 +98,7 @@ func init() {
 	GetCmd.PersistentFlags().StringSliceP("tag", "a", []string{}, "tags to allow")
 	GetCmd.PersistentFlags().StringSlice("tag-not", []string{}, "tags to disallow")
 
-	GetCmd.PersistentFlags().StringSliceP("path", "p", []string{}, "paths to allow, substring")
+	GetCmd.PersistentFlags().StringSliceP("path", "p", []string{}, "paths to allow, prefix")
 	GetCmd.PersistentFlags().StringSliceP("title", "t", []string{}, "titles to allow, substring")
 	GetCmd.PersistentFlags().StringSliceP("contents", "c", []string{}, "contents to allow, substring")
 
@@ -106,7 +106,7 @@ func init() {
 	GetCmd.PersistentFlags().StringSlice("title-exact", []string{}, "titles to allow, exact")
 	GetCmd.PersistentFlags().StringSlice("contents-exact", []string{}, "substrings to allow, exact")
 
-	GetCmd.PersistentFlags().StringSlice("path-not", []string{}, "paths to disallow, substring")
+	GetCmd.PersistentFlags().StringSlice("path-not", []string{}, "paths to disallow, prefix")
 	GetCmd.PersistentFlags().StringSlice("title-not", []string{}, "titles to disallow, substring")
 	GetCmd.PersistentFlags().StringSlice("contents-not", []string{}, "contents to disallow, substring")
 

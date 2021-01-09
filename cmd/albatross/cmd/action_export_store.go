@@ -34,7 +34,7 @@ You could match all the entries in 'school/' using the command
 
 You could then use the 'export store' action to create a new folder containing just the school entries:
 
-	$ albatross get -p school/
+	$ albatross get -p school/ export store
 	# Outputs a folder, by default 'store' in the current directory:
 
 	./
