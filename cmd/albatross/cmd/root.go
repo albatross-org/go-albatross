@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,6 +16,8 @@ import (
 	"github.com/spf13/viper"
 
 	albatross "github.com/albatross-org/go-albatross/pkg/core"
+
+	_ "net/http/pprof"
 )
 
 var cfgFile string
@@ -27,6 +31,8 @@ var storePath string
 var store *albatross.Store
 var globalLog *logrus.Logger
 var log *logrus.Entry
+
+var pprof bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -135,6 +141,11 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
+	if pprof {
+		log.Println("Starting profilling server on localhost:6060...")
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}
 }
 
 func init() {
@@ -149,6 +160,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&storeName, "store", "default", "store to use, as defined in config file (e.g. default, thesis)")
 	rootCmd.PersistentFlags().BoolVarP(&leaveDecrypted, "leave-decrypted", "l", false, "whether to leave the store decrypted or encrypt it again after decrypting it")
 	rootCmd.PersistentFlags().BoolVarP(&disableGit, "disable-git", "d", false, "don't use git for version control (mainly used when you want to make commits by hand)")
+	rootCmd.PersistentFlags().BoolVar(&pprof, "pprof", false, "after the command has executed, start a pprof server on port 6060")
 }
 
 // getConfigDirectory gets the configuration directory that should be used for the program.
@@ -216,9 +228,16 @@ func initStore() {
 	)
 
 	var err error
+
+	start := time.Now()
 	store, err = albatross.Load(storePath)
 	if err != nil {
 		log.Fatal(err)
+	}
+	end := time.Now()
+
+	if globalLog.IsLevelEnabled(logrus.DebugLevel) {
+		log.Debugf("Parsing store took %s.", end.Sub(start))
 	}
 
 	if disableGit {

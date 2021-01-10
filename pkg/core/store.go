@@ -94,7 +94,7 @@ func (s *Store) DisableGit() {
 
 // load loads the Collection and in-memory git repository contained within the Store.
 func (s *Store) load() error {
-	collection, entryErrs, err := entries.DirGraph(s.entriesPath)
+	collection, entryErrs, err := entries.FromDirectoryAsync(s.entriesPath)
 	if err != nil {
 		return err
 	}
