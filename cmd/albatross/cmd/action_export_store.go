@@ -12,7 +12,7 @@ import (
 // ActionExportStoreCmd represents the 'export store' action.
 var ActionExportStoreCmd = &cobra.Command{
 	Use:     "store",
-	Aliases: []string{"albatross"},
+	Aliases: []string{"albatross", "folder", "dir"},
 	Short:   "output entries in the Albatross store format",
 	Long: `store converts the matched entries into the Albatross Store format, a folder containing 'entry.md' files.
 
@@ -81,26 +81,10 @@ We should be left with something that looks like this:
 		outputDest, err := cmd.Flags().GetString("output")
 		checkArg(err)
 
-		if !filepath.IsAbs(outputDest) {
-			cwd, err := os.Getwd()
-			if err != nil {
-				fmt.Println("Couldn't get the current working directory:")
-				fmt.Println(err)
-				os.Exit(1)
-			}
-
-			outputDest = filepath.Join(cwd, outputDest)
-		}
-
-		if _, err := os.Stat(outputDest); !os.IsNotExist(err) {
+		err = checkOutputDest(outputDest)
+		if err != nil {
 			fmt.Printf("Cannot output store to %s:\n", outputDest)
-			fmt.Println("Directory/file already exists.")
-			os.Exit(1)
-		}
-
-		if _, err := os.Stat(filepath.Dir(outputDest)); os.IsNotExist(err) {
-			fmt.Printf("Cannot output store to %s: \n", outputDest)
-			fmt.Printf("Folder %s does not exist\n", filepath.Dir(outputDest))
+			fmt.Println(err)
 			os.Exit(1)
 		}
 
@@ -239,6 +223,29 @@ func copyFolderWithoutEntries(src, dest string) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// checkOutputDest checks if the argument given is a valid output destination
+// An error is returned if it is invalid, otherwise it is nil.
+func checkOutputDest(outputDest string) error {
+	if !filepath.IsAbs(outputDest) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return fmt.Errorf("couldn't get the current working directory %w", err)
+		}
+
+		outputDest = filepath.Join(cwd, outputDest)
+	}
+
+	if _, err := os.Stat(outputDest); !os.IsNotExist(err) {
+		return fmt.Errorf("directory or file already exists")
+	}
+
+	if _, err := os.Stat(filepath.Dir(outputDest)); os.IsNotExist(err) {
+		return fmt.Errorf("folder %s does not exist", filepath.Dir(outputDest))
 	}
 
 	return nil

@@ -26,7 +26,7 @@ func mapToTree(rootKey string, stringTree map[string]interface{}, maxDepth int, 
 		subtree := mapToTree(key, subStringTree.(map[string]interface{}), maxDepth-1, path+"/"+key, renderFunc)
 
 		if len(subtree.Items()) == 0 {
-			tree.Add(renderFunc(strings.TrimLeft(path+"/"+key, "/")))
+			tree.Add(renderFunc(strings.TrimPrefix(path+"/"+key, "/")))
 		} else {
 			tree.AddTree(subtree)
 		}

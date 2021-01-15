@@ -18,6 +18,7 @@ var ActionAttachmentsCmd = &cobra.Command{
 	
 You can specify what kind of path to print with these flags:
 
+	FLAG        EXAMPLE PATH
 	--name	    argand-diagram.png
 	--rel-path  school/further-maths/argand-diagrams/argand-diagram.png
 	--abs-path  /home/david/documents/.../argand-diagram.png`,

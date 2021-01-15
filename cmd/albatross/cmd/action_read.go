@@ -6,8 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// ContentsCmd represents the contents command.
-var ContentsCmd = &cobra.Command{
+// ActionContentsCmd represents the contents command.
+var ActionContentsCmd = &cobra.Command{
 	Use:     "contents",
 	Aliases: []string{"print", "contents"},
 	Short:   "print entry contents",
@@ -51,8 +51,8 @@ This is more useful for doing stuff like word counts:
 }
 
 func init() {
-	GetCmd.AddCommand(ContentsCmd)
+	GetCmd.AddCommand(ActionContentsCmd)
 
-	ContentsCmd.Flags().Bool("raw", false, "include front matter when printing")
-	ContentsCmd.Flags().String("between", "", "what to print between entries")
+	ActionContentsCmd.Flags().Bool("raw", false, "include front matter when printing")
+	ActionContentsCmd.Flags().String("between", "", "what to print between entries")
 }

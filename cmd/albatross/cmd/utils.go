@@ -107,3 +107,10 @@ func confirmPrompt(s string) bool {
 		}
 	}
 }
+
+// commandExists checks if a command exists.
+// Courtesy https://gist.github.com/miguelmota/ed4ec562b8cd1781e7b20151b37de8a0
+func commandExists(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
+}

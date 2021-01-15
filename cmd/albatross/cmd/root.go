@@ -17,6 +17,7 @@ import (
 
 	albatross "github.com/albatross-org/go-albatross/pkg/core"
 
+	// Used for profiling purposes.
 	_ "net/http/pprof"
 )
 
@@ -151,16 +152,16 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initLogging, initConfig, initStore)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
+	// Global flags.
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/albatross/config.yaml)")
 	rootCmd.PersistentFlags().StringVar(&logLvl, "level", "info", "logging level (trace, debug, info, warning, error, fatal, panic)")
 	rootCmd.PersistentFlags().StringVar(&storeName, "store", "default", "store to use, as defined in config file (e.g. default, thesis)")
 	rootCmd.PersistentFlags().BoolVarP(&leaveDecrypted, "leave-decrypted", "l", false, "whether to leave the store decrypted or encrypt it again after decrypting it")
 	rootCmd.PersistentFlags().BoolVarP(&disableGit, "disable-git", "d", false, "don't use git for version control (mainly used when you want to make commits by hand)")
+
+	// Special hidden flags for development purposes.
 	rootCmd.PersistentFlags().BoolVar(&pprof, "pprof", false, "after the command has executed, start a pprof server on port 6060")
+	rootCmd.PersistentFlags().MarkHidden("pprof")
 }
 
 // getConfigDirectory gets the configuration directory that should be used for the program.

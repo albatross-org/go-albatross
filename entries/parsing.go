@@ -192,7 +192,7 @@ func (p Parser) extractFrontMatter(path, content string) (frontMatter string, st
 	frontMatter = strings.Trim(frontMatter, "\n")
 
 	strippedContent = content[endOffset+4:]
-	strippedContent = strings.TrimLeft(strippedContent, "\n")
+	strippedContent = strings.TrimPrefix(strippedContent, "\n")
 
 	return frontMatter, strippedContent, nil
 }
