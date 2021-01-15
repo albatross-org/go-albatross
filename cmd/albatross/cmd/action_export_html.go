@@ -465,8 +465,8 @@ func tempHugoDir() (path string) {
 
 // cleanupHugoDir deletes a temporary Hugo directory.
 func cleanupHugoDir(path string) {
-	if !strings.Contains(path, "/tmp/albatross-hugo-build") || filepath.Base(path) != "site" {
-		fmt.Println("Temporary directory does not start with /tmp/albatross-hugo-build/.../site, refusing to delete.")
+	if !strings.HasPrefix(path, os.TempDir()) && strings.Contains(path, "albatross-hugo-build") || filepath.Base(path) != "site" {
+		fmt.Printf("Temporary directory %s does not look like a valid temporary directory, refusing to delete.\n", path)
 		os.Exit(1)
 	}
 
