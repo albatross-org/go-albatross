@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -80,7 +81,11 @@ By default, the command will print all the entries to all the paths that it matc
 much more. 'Actions' are mini-programs that operate on lists of entries. For all available entries, see
 the available subcommands.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		ActionPathCmd.Run(cmd, args)
+		_, _, list := getFromCommand(cmd)
+
+		for _, entry := range list.Slice() {
+			fmt.Println(entry.Path)
+		}
 	},
 }
 
