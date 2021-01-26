@@ -5,9 +5,13 @@ import (
 	"crypto/sha1"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strings"
+	"time"
+
+	"github.com/spf13/cobra"
 )
 
 // getEditor gets the $EDITOR environment variable, defaulting to the argument specified if none has been set.
@@ -24,6 +28,15 @@ func getEditor(def string) string {
 func checkArg(err error) {
 	if err != nil {
 		fmt.Println("Can't get argument:")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+// checkArgVerbose checks an error returned by a call to cmd.Flags().Get and prints a detailed error if it fails.
+func checkArgVerbose(cmd *cobra.Command, flag string, err error) {
+	if err != nil {
+		fmt.Printf("Can't get argument %s for command %s:\n", flag, cmd.Name())
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -109,8 +122,26 @@ func confirmPrompt(s string) bool {
 }
 
 // commandExists checks if a command exists.
-// Courtesy https://gist.github.com/miguelmota/ed4ec562b8cd1781e7b20151b37de8a0
+// Courtesy: https://gist.github.com/miguelmota/ed4ec562b8cd1781e7b20151b37de8a0
 func commandExists(cmd string) bool {
 	_, err := exec.LookPath(cmd)
 	return err == nil
+}
+
+// letterBytes are the letters used to generate a random string.
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// randomString generates a string consisting of characters from letterBytes that is n characters long.
+// Courtesy: https://stackoverflow.com/a/31832326
+func randomString(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Int63()%int64(len(letterBytes))]
+	}
+	return string(b)
+}
+
+func init() {
+	// Seed the random number generator.
+	rand.Seed(time.Now().UnixNano())
 }
