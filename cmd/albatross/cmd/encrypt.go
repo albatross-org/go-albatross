@@ -12,13 +12,13 @@ import (
 // EncryptCmd represents the encrypt command
 var EncryptCmd = &cobra.Command{
 	Use:   "encrypt",
-	Short: "encrypt an albatross store",
-	Long: `encrypt will encrypt an albatross store
+	Short: "Encrypt a store",
+	Long: `encrypt will encrypt a store
 
 For example:
 
-$ albatross encrypt
-Encrypting... done in 45ms`,
+	$ albatross encrypt
+	Encrypting... done in 45ms`,
 	Run: func(cmd *cobra.Command, args []string) {
 		encryptStore()
 	},

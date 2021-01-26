@@ -14,8 +14,8 @@ import (
 // DecryptCmd represents the decrypt command
 var DecryptCmd = &cobra.Command{
 	Use:   "decrypt",
-	Short: "decrypt an albatross store",
-	Long:  `decrypt will decrypt an albatross store`,
+	Short: "Decrypt a store",
+	Long:  `decrypt will decrypt a store`,
 	Run: func(cmd *cobra.Command, args []string) {
 		decryptStore()
 	},

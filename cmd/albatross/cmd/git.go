@@ -12,7 +12,7 @@ import (
 // GitCmd represents the git command
 var GitCmd = &cobra.Command{
 	Use:   "git",
-	Short: "interface with git in a store",
+	Short: "Interface with git in a store",
 	Long: `git lets you access git version control within the store.
 
 Basically, it's a shorthand for doing

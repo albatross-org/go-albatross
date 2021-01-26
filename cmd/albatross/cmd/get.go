@@ -15,24 +15,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// These are global variables that is set once the get command is called.
-// This is to allow commands in the `actions/` subdirectory to access filtered entries.
-var (
-	GetCollection *entries.Collection
-	GetList       entries.List
-)
-
 // GetCmd represents the get command
 var GetCmd = &cobra.Command{
 	Use:     "get <filters> [action]",
-	Short:   "get entries matching specific criteria and perform actions on them",
+	Short:   "Get entries matching specific criteria and perform actions on them",
 	Aliases: []string{"search", "query", "g"},
 	Long: `get finds entries matching specific criteria and allows you to run actions on them, such as
 
+	- Viewing their contents
+	- Updating their contents
 	- Printing their links
 	- Printing their paths
 	- Exporting them as JSON or YAML
+	- Showing or creating attachments
 	- Generating flashcards
+	- Creating a static HTML website to browse entries matched
+
+For a full list, see the subcommands section.
 
 Some examples:
 

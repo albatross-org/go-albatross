@@ -26,9 +26,9 @@ date: "<(.date | date "2006-01-02 15:04")>"
 // CreateCmd represents the create command
 var CreateCmd = &cobra.Command{
 	Use:     "create",
-	Short:   "create a new entry",
+	Short:   "Create a new entry",
 	Aliases: []string{"new"},
-	Long: `create a new entry from the command line
+	Long: `This command lets you create a new entry from the command line
 	
 	$ albatross create food/pizza "The Most Amazing Pizza"
 
