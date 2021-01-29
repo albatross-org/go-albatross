@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/albatross-org/go-albatross/entries"
 	"github.com/manifoldco/promptui"
@@ -84,14 +85,21 @@ func updateEntry(entry *entries.Entry, editorName string) {
 			log.Fatal("Couldn't get create temporary file to save recovery entry to. You're on your own! ", err)
 		}
 
-		_, err = f.Write([]byte(content))
-		if err != nil {
+		_, wErr := f.Write([]byte(content))
+		if wErr != nil {
 			log.Fatal("Error writing to temporary file to save recovery entry to. You're on your own! ", err)
 		}
 
-		fmt.Println("Error updating entry. A copy of the updated file has been saved to:", f.Name())
-		fmt.Println(err)
-		os.Exit(1)
+		// See if we were editing a 'parsing' entry.
+		if strings.HasPrefix(entry.Path, "_parsing") && entry.Synthetic {
+			fmt.Println("Attempted to update a '_parsing' entry. This was likely a mistage, a copy of the updated file has been saved to:", f.Name())
+			fmt.Println(err)
+			os.Exit(1)
+		} else {
+			fmt.Println("Error updating entry. A copy of the updated file has been saved to:", f.Name())
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	fmt.Println("Successfully updated entry:", entry.Path)

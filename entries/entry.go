@@ -42,6 +42,10 @@ type Entry struct {
 
 	// Attachments are a list of the attachments to the entry.
 	Attachments []Attachment
+
+	// Synthetic specifys whether this is a pretend entry, such as used in the --parse-content option of the CLI or the result of a template-generated
+	// entry.
+	Synthetic bool
 }
 
 // NewEntryFromFile returns a new Entry given a file system and a path to the `entry.md` file in that file system.

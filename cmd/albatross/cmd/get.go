@@ -406,7 +406,9 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
 		pretendEntry.Path = fakePath
+		pretendEntry.Synthetic = true
 
 		collection.Add(pretendEntry)
 
