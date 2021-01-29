@@ -31,7 +31,8 @@ var VimCloseCmd = &cobra.Command{
 		checkArgVerbose(cmd, "path", err)
 
 		if !strings.HasPrefix(path, filepath.Join(os.TempDir(), "vim-albatross")) {
-			fmt.Println("ERROR: The path given is not to a temporary vim-albatross file.")
+			fmt.Println("ERROR: The path given is not to a temporary vim-albatross file:", path)
+			os.Exit(1)
 		}
 
 		entryPath, dirPath := extractEntryPath(path)
@@ -67,28 +68,30 @@ var VimCloseCmd = &cobra.Command{
 
 		content := string(contentBytes)
 
+		// If no change has been made to the entry, we still want to delete it afterwards.
 		if entry.OriginalContents == content {
-			fmt.Println("ERROR: No change made to entry:", entry.Path)
-			os.Exit(1)
-		}
-
-		err = store.Update(entryPath, content)
-		if err != nil {
-			f, tempErr := ioutil.TempFile("", "albatross-recover")
-			if tempErr != nil {
-				fmt.Println("ERROR: Couldn't get create temporary file to save recovery entry to. You're on your own!")
-				fmt.Println(err)
-			}
-
-			_, err = f.Write([]byte(content))
+			fmt.Println("INFO: No change made to entry:", entry.Path)
+		} else {
+			err = store.Update(entryPath, content)
 			if err != nil {
-				fmt.Println("ERROR: Couldn't write to temporary file to save recovery entry to. You're on your own!")
-				fmt.Println(err)
-			}
+				f, tempErr := ioutil.TempFile("", "albatross-recover")
+				if tempErr != nil {
+					fmt.Println("ERROR: Couldn't get create temporary file to save recovery entry to. You're on your own!")
+					fmt.Println(err)
+					os.Exit(1)
+				}
 
-			fmt.Println("ERROR: Couldn't update entry. A copy of the updated file has been saved to:", f.Name())
-			fmt.Println(err)
-			os.Exit(1)
+				_, err = f.Write([]byte(content))
+				if err != nil {
+					fmt.Println("ERROR: Couldn't write to temporary file to save recovery entry to. You're on your own!")
+					fmt.Println(err)
+					os.Exit(1)
+				}
+
+				fmt.Println("ERROR: Couldn't update entry. A copy of the updated file has been saved to:", f.Name())
+				fmt.Println(err)
+				os.Exit(1)
+			}
 		}
 
 		// Sanity check we're not going to end up deleting something important.

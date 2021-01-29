@@ -73,6 +73,9 @@ This command is used to start and maintain a conversation with vim-albatross:
 			os.Exit(1)
 		}
 
+		cmd.Usage()
+
+		fmt.Println("\nThis version of albatross has working Vim compatibility.")
 	},
 }
 

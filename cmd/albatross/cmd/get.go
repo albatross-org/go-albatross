@@ -78,7 +78,70 @@ You can also change the delimeter used from " OR " using the --delimeter flag.
 
 By default, the command will print all the entries to all the paths that it matched. However, you can do
 much more. 'Actions' are mini-programs that operate on lists of entries. For all available entries, see
-the available subcommands.`,
+the available subcommands.
+
+
+Advanced: Parsing
+-----------------
+
+Parsing is a feature that allows you to run commands on pretend entries. For some context of why this might
+be useful, the vim-albatross plugin is a good example. vim-albatross provides a function where you can see
+all the Albatross links that are present in the current buffer.
+
+Doing this in vim-albatross in especially difficult because the text inside the current buffer isn't neccesarily
+in the store because if the file is unsaved then when an Albatross client reads the filesystem the changes won't be
+present. Furthermore, due to how vim-albatross works (as detailed in 'albatross vim --help') even if we write to the
+current buffer, the changes won't be reflected.
+
+This could be achieved by manually searching for all the [[Links]] and {{Paths}} that are present in the text,
+running a command like 'albatross get title | grep -q "Link Name"' or 'albatross get title | grep -q "path/to/link"'
+having Vim check the status code, but then why reimplement an entry parser to perform this when one already exists.
+
+The solution is parsing pretend entries. Now we can run a command like:
+
+	# Print all valid links in the entry:
+	$ albatross get --parse-content "Is [[this]] a link? This is definitely a link: [[Pizza]]" links
+	food/pizza
+
+	# Print links that don't exist:
+	$ albatross get --parse-content "Is [[this]] a link? This is definitely a link: [[Pizza]]" links -e
+	[[this]]
+
+In the case of vim-albatross specifically:
+
+	$ albatross get --parse-file /tmp/vim-albatross/... links
+
+This may seem overkill, and it probably is. But the technique is much more general and can be used for other purposes:
+
+	# Generate flashcards that aren't in an existing entry:
+	$ albatross get --parse-file flashcards.txt ankify > ready_to_import_to_anki.tsv
+
+So in summary: this feature can be used to add a pretend entry to the store which can be queried and interacted with
+just like any other entry.
+
+	FLAG					FUNCTION
+	--parse-content			Parse the text in this flag like it's an entry.
+	--parse-file			Parse the file in this flag like it's an entry.
+
+Only one of these flags can be used at a time.
+
+By default, if you invoke a --parse flag, the search will automatically be filtered to only include that entry. For example:
+
+	# What you might expect to happen:
+	$ albatross get -p school --parse-content "I'm a pretend entry!" title
+	I'm a pretend entry! 			(here the entry content is the same as the title seeing as there's no metadata)
+	Computing - Communications
+	Computing - Networking
+	Further Maths - Argand Diagrams
+	...
+
+
+	# What actually happens:
+	$ albatross get -p school --parse-content "I'm a pretend entry!" title
+	I'm a pretend entry!
+
+You can disable this using the --parse-dont-restrict flag. Pretend entries will have a path like "_parsing/I53Buamaskx5GZv7"
+in order to prevent conflicts with other paths.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		_, _, list := getFromCommand(cmd)
 
@@ -125,6 +188,11 @@ func init() {
 	GetCmd.PersistentFlags().String("sort", "", "sorting scheme ('alpha', 'date' or '' for random)")
 	GetCmd.PersistentFlags().String("date-format", "2006-01-02 15:04", "date format for parsing from and until")
 	GetCmd.PersistentFlags().String("delimeter", " OR ", "delimeter to use for splitting up arguments")
+
+	// Parsing
+	GetCmd.PersistentFlags().String("parse-content", "", "parse the text given as an entry that was matched as part of the search. See help for details")
+	GetCmd.PersistentFlags().String("parse-file", "", "parse this file like an entry that was matched as part of the search. See help for details")
+	GetCmd.PersistentFlags().Bool("parse-dont-restrict", false, "don't automatically restrict the entries matched to be parsed entries if any were given. See help for details")
 }
 
 // multiSplit is like strings.Split except it splits a slice of strings into a slice of slices.
@@ -153,78 +221,88 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 
 	// Get the misc flags
 	dateFormat, err := cmd.Flags().GetString("date-format")
-	checkArg(err)
+	checkArgVerbose(cmd, "date-format", err)
 
 	rev, err := cmd.Flags().GetBool("rev")
-	checkArg(err)
+	checkArgVerbose(cmd, "rev", err)
 
 	sort, err := cmd.Flags().GetString("sort")
-	checkArg(err)
+	checkArgVerbose(cmd, "sort", err)
 
 	delimeter, err := cmd.Flags().GetString("delimeter")
-	checkArg(err)
+	checkArgVerbose(cmd, "delimeter", err)
 
 	// Get the filter flags, generic
 	number, err := cmd.Flags().GetInt("number")
-	checkArg(err)
+	checkArgVerbose(cmd, "number", err)
 
 	from, err := cmd.Flags().GetString("from")
-	checkArg(err)
+	checkArgVerbose(cmd, "from", err)
 
 	until, err := cmd.Flags().GetString("until")
-	checkArg(err)
+	checkArgVerbose(cmd, "until", err)
 
 	minLength, err := cmd.Flags().GetInt("min-length")
-	checkArg(err)
+	checkArgVerbose(cmd, "min-length", err)
 
 	maxLength, err := cmd.Flags().GetInt("max-length")
-	checkArg(err)
+	checkArgVerbose(cmd, "max-length", err)
 
 	tags, err := cmd.Flags().GetStringSlice("tag")
-	checkArg(err)
+	checkArgVerbose(cmd, "tag", err)
 
 	tagsExclude, err := cmd.Flags().GetStringSlice("tag-not")
-	checkArg(err)
+	checkArgVerbose(cmd, "tag-not", err)
 
 	// Get the filter flags, match vs not
 	pathsMatch, err := cmd.Flags().GetStringSlice("path")
-	checkArg(err)
+	checkArgVerbose(cmd, "path", err)
 
 	pathsExact, err := cmd.Flags().GetStringSlice("path-exact")
-	checkArg(err)
+	checkArgVerbose(cmd, "path-exact", err)
 
 	pathsMatchNot, err := cmd.Flags().GetStringSlice("path-not")
-	checkArg(err)
+	checkArgVerbose(cmd, "path-not", err)
 
 	pathsExactNot, err := cmd.Flags().GetStringSlice("path-exact-not")
-	checkArg(err)
+	checkArgVerbose(cmd, "path-exact-not", err)
 
 	titlesMatch, err := cmd.Flags().GetStringSlice("title")
-	checkArg(err)
+	checkArgVerbose(cmd, "title", err)
 
 	titlesExact, err := cmd.Flags().GetStringSlice("title-exact")
-	checkArg(err)
+	checkArgVerbose(cmd, "title-exact", err)
 
 	titlesMatchNot, err := cmd.Flags().GetStringSlice("title-not")
-	checkArg(err)
+	checkArgVerbose(cmd, "title-not", err)
 
 	titlesExactNot, err := cmd.Flags().GetStringSlice("title-exact-not")
-	checkArg(err)
+	checkArgVerbose(cmd, "title-exact-not", err)
 
 	contentsMatch, err := cmd.Flags().GetStringSlice("contents")
-	checkArg(err)
+	checkArgVerbose(cmd, "contents", err)
 
 	contentsExact, err := cmd.Flags().GetStringSlice("contents-exact")
-	checkArg(err)
+	checkArgVerbose(cmd, "contents-exact", err)
 
 	contentsMatchNot, err := cmd.Flags().GetStringSlice("contents-not")
-	checkArg(err)
+	checkArgVerbose(cmd, "contents-not", err)
 
 	contentsExactNot, err := cmd.Flags().GetStringSlice("contents-exact-not")
-	checkArg(err)
+	checkArgVerbose(cmd, "contents-exact-not", err)
 
 	stdin, err := cmd.Flags().GetBool("stdin")
-	checkArg(err)
+	checkArgVerbose(cmd, "stdin", err)
+
+	// Get flags for parsing fake entries
+	parseContent, err := cmd.Flags().GetString("parse-content")
+	checkArgVerbose(cmd, "parse-content", err)
+
+	parseFile, err := cmd.Flags().GetString("parse-file")
+	checkArgVerbose(cmd, "parse-file", err)
+
+	parseDontRestrict, err := cmd.Flags().GetBool("parse-dont-restrict")
+	checkArgVerbose(cmd, "parse-dont-restrict", err)
 
 	// Parse dates using format
 	var fromDate, untilDate time.Time
@@ -292,6 +370,49 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 	collection, err = store.Collection()
 	if err != nil {
 		log.Fatalf("Couldn't parse Albatross store to collection: %s", err)
+	}
+
+	if parseContent != "" || parseFile != "" {
+		if parseContent != "" && parseFile != "" {
+			fmt.Println("Error: Please use either --parse-content or --parse-file, not both at the same time.")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		parser, err := entries.NewParser("2006-01-02", "@!", "@?")
+		if err != nil {
+			fmt.Println("Error: Couldn't create a new Parser struct. Something's gone wrong.")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		var pretendEntry *entries.Entry
+		fakePath := fmt.Sprint("_parsing", "/", randomString(16))
+
+		if parseContent != "" {
+			pretendEntry, err = parser.Parse(fakePath, parseContent)
+		} else if parseFile != "" {
+			pretendContentBytes, err := ioutil.ReadFile(parseFile)
+			if err != nil {
+				fmt.Println("Error: Couldn't read the --parse-file ", parseFile)
+				fmt.Println(err)
+				os.Exit(1)
+			}
+			pretendEntry, err = parser.Parse(fakePath, string(pretendContentBytes))
+		}
+
+		if err != nil {
+			fmt.Println("Error: Couldn't parse the entry given:")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		pretendEntry.Path = fakePath
+
+		collection.Add(pretendEntry)
+
+		if !parseDontRestrict {
+			query.PathsExact = [][]string{[]string{fakePath}}
+		}
 	}
 
 	start := time.Now()

@@ -223,15 +223,21 @@ func (p Parser) parseFrontMatterMap(path, frontMatter string) (map[string]interf
 // no other is available.
 // This function will remove an ending full stop, but no other pieces of punctuation. This is a stylistic choice, for example:
 //   "A Day At A Restaurant." => "A Day At A Restaurant", "A Day At A Restaurant!!" => "A Day At A Restaurant!!"
-// It will also remove trailing newlines.
+// It will also remove trailing newlines. If no initial sentence can be found, it first tries the first test seperated
+// by some newlines which will happen to be the entire content of the entry if there is not multiple lines.
+// For example:
+//    "A Day At A Restaurant" => title will just be "A Day At A Restaurant."
 func (p Parser) getFirstSentence(path, strippedContent string) (string, error) {
+	if strings.Trim(strippedContent, "\n") == "" {
+		return "", p.err(path, "entry is blank and without front matter, can't find a title to use")
+	}
 	initialSentence := reInitialSentence.FindString(strippedContent)
 
 	initialSentence = strings.Trim(initialSentence, "\n")
 	initialSentence = strings.Trim(initialSentence, ".")
 
 	if initialSentence == "" {
-		return "", p.err(path, "could not locate title as front matter or initial sentence")
+		initialSentence = strings.Split(strippedContent, "\n")[0]
 	}
 
 	return initialSentence, nil
