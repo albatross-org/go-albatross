@@ -71,10 +71,5 @@ func (s *Store) Decrypt(passwordFunc func() (string, error)) error {
 		return err
 	}
 
-	err = s.loadGit()
-	if err != nil {
-		return fmt.Errorf("error loading git after decryption: %s", err)
-	}
-
 	return os.RemoveAll(s.entriesPath + ".gpg")
 }

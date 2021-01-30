@@ -5,10 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
-
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // Delete deletes an entry and all its attachments from the store. If the store is encrypted, it returns ErrStoreEncrypted.
@@ -62,9 +58,10 @@ func (s *Store) Delete(path string) error {
 				return err
 			}
 
-			if s.repo != nil && s.disableGit != true {
+			if s.UsingGit() && !s.disableGit {
 				relSubpath := strings.TrimPrefix(subpath, s.entriesPath+"/")
-				_, err := s.worktree.Add(relSubpath) // We use 'add' here although this is 'adding' a removal.
+				addCmd := s.gitCmd("add", relSubpath)
+				err = addCmd.Run()
 				if err != nil {
 					return fmt.Errorf("couldn't record removal %s: %w", relSubpath, err)
 				}
@@ -86,16 +83,9 @@ func (s *Store) Delete(path string) error {
 	}
 
 	// If we're using Git we add a commit recording what we've deleted.
-	if s.repo != nil && s.disableGit != true {
-		_, err = s.worktree.Commit(
-			fmt.Sprintf("(go-albatross) Delete %s", relPath),
-			&git.CommitOptions{
-				Author: &object.Signature{
-					Name: "go-albatross",
-					When: time.Now(),
-				},
-			},
-		)
+	if s.UsingGit() && !s.disableGit {
+		commitCmd := s.gitCmd("commit", "--author", "go-albatross <>", "-m", fmt.Sprintf("(go-albatross) Deleted %s", relPath))
+		err = commitCmd.Run()
 		if err != nil {
 			return err
 		}

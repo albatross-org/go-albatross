@@ -2,11 +2,9 @@ package core
 
 import (
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"time"
-
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 
 	"github.com/albatross-org/go-albatross/entries"
 
@@ -20,11 +18,11 @@ type Store struct {
 	entriesPath     string
 	configPath      string
 	attachmentsPath string
+	gitPath         string
 
 	coll       *entries.Collection
-	repo       *git.Repository
-	worktree   *git.Worktree
 	disableGit bool
+	hasGit     bool
 
 	config *viper.Viper
 }
@@ -36,6 +34,7 @@ func Load(path string) (*Store, error) {
 	s.entriesPath = filepath.Join(path, "entries")
 	s.configPath = filepath.Join(path, "config.yaml")
 	s.attachmentsPath = filepath.Join(path, "attachments")
+	s.gitPath = filepath.Join(path, "entries", ".git")
 
 	config, err := parseConfigFile(s.configPath)
 	if err != nil {
@@ -82,7 +81,7 @@ func (s *Store) Collection() (*entries.Collection, error) {
 // This will still return true after a call to .DisableGit. The reasoning is that the store is still
 // using Git, it's just Git functionality isn't being used by the client.
 func (s *Store) UsingGit() bool {
-	return s.worktree != nil
+	return s.hasGit
 }
 
 // DisableGit disables the use of git.
@@ -105,29 +104,10 @@ func (s *Store) load() error {
 
 	s.coll = collection
 
-	err = s.loadGit()
-	if err != nil {
-		return err
+	// We test for a Git enabled store by seeing if the '.git' folder exists.
+	if exists(s.gitPath) {
+		s.hasGit = true
 	}
-
-	return nil
-}
-
-// loadGit loads git
-func (s *Store) loadGit() error {
-	repo, err := git.PlainOpen(s.entriesPath)
-	if err != nil {
-		// Here we ignore an error if we open the git repository.
-		// This means that if we're not using git then it won't cause any errors.
-		return nil
-	}
-	s.repo = repo
-
-	worktree, err := repo.Worktree()
-	if err != nil {
-		return err
-	}
-	s.worktree = worktree
 
 	return nil
 }
@@ -135,8 +115,6 @@ func (s *Store) loadGit() error {
 // unload unloads the Collection contained within the Store.
 func (s *Store) unload() {
 	s.coll = nil
-	s.repo = nil
-	s.worktree = nil
 }
 
 // reload is an unload followed by a load. It means changes made are reflected in the store's internal collection.
@@ -149,27 +127,39 @@ func (s *Store) reload() error {
 // recordChange records a change to the store if there is a git repository
 func (s *Store) recordChange(path, message string, a ...interface{}) error {
 	// If we're not using Git or Git has been disabled, don't do anything
-	if s.repo == nil || s.disableGit == true {
+	if !s.UsingGit() || s.disableGit {
 		return nil
 	}
 
-	_, err := s.worktree.Add(path)
+	start := time.Now()
+
+	addCmd := s.gitCmd("add", path)
+	err := addCmd.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't add change %s to Git: %w", path, err)
 	}
 
-	_, err = s.worktree.Commit(
-		fmt.Sprintf("(go-albatross) %s", fmt.Sprintf(message, a...)),
-		&git.CommitOptions{
-			Author: &object.Signature{
-				Name: "go-albatross",
-				When: time.Now(),
-			},
-		},
-	)
+	worktreeTime := time.Now()
+
+	commitCmd := s.gitCmd("commit", "--author", "go-albatross <>", "-m", "(go-albatross) "+fmt.Sprintf(message, a...))
+	err = commitCmd.Run()
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't commit changes %s to Git: %w", s.Path, err)
 	}
+
+	commitTime := time.Now()
+
+	log.Debugf(
+		"Recording change via Git, time to add to worktree: %s, time to commit: %s, overall: %s",
+		worktreeTime.Sub(start),
+		commitTime.Sub(worktreeTime),
+		commitTime.Sub(start),
+	)
 
 	return nil
+}
+
+// gitCmd creates a new exec.Cmd that contains the correct flags.
+func (s *Store) gitCmd(args ...string) *exec.Cmd {
+	return exec.Command("git", append([]string{"--git-dir", s.gitPath, "--work-tree", s.entriesPath}, args...)...)
 }
