@@ -8,7 +8,7 @@ import (
 	"github.com/albatross-org/go-albatross/encryption"
 	"github.com/spf13/cobra"
 
-	albatross "github.com/albatross-org/go-albatross/pkg/core"
+	albatross "github.com/albatross-org/go-albatross/albatross"
 )
 
 // DecryptCmd represents the decrypt command

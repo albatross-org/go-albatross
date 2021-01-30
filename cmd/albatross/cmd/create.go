@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig"
-	"github.com/albatross-org/go-albatross/pkg/core"
+	albatross "github.com/albatross-org/go-albatross/albatross"
 
 	"github.com/spf13/cobra"
 )
@@ -151,7 +151,7 @@ The above will create an entry at the path junk/copied-file that has the exact c
 		// after the entry has been created, which could lead to data loss and be frustrating in general.
 		err = store.Create(args[0], contents)
 		if err != nil {
-			if _, ok := err.(core.ErrEntryAlreadyExists); ok {
+			if _, ok := err.(albatross.ErrEntryAlreadyExists); ok {
 				fmt.Printf("Entry %s already exists.\n", args[0])
 				os.Exit(1)
 			}

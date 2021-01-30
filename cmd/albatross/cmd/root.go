@@ -15,7 +15,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 
-	albatross "github.com/albatross-org/go-albatross/pkg/core"
+	"github.com/albatross-org/go-albatross/albatross"
 
 	// Used for profiling purposes.
 	_ "net/http/pprof"

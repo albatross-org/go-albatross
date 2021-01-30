@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	albatross "github.com/albatross-org/go-albatross/pkg/core"
+	"github.com/albatross-org/go-albatross/albatross"
 )
 
 // EncryptCmd represents the encrypt command
