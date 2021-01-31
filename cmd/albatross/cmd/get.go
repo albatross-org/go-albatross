@@ -379,7 +379,7 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 			os.Exit(1)
 		}
 
-		parser, err := entries.NewParser("2006-01-02", "@!", "@?")
+		parser, err := entries.NewParser(store.Config.DateFormat, store.Config.TagPrefix)
 		if err != nil {
 			fmt.Println("Error: Couldn't create a new Parser struct. Something's gone wrong.")
 			fmt.Println(err)

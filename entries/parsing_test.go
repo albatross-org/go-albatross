@@ -7,9 +7,8 @@ import (
 )
 
 var (
-	testDateLayout       = "2006-01-02 15:04"
-	testBuiltinTagPrefix = "@!"
-	testCustomTagPrefix  = "@?"
+	testDateLayout = "2006-01-02 15:04"
+	testTagPrefix  = "@?"
 )
 
 func dummyEntryWithContent(content string) string {
@@ -22,7 +21,7 @@ date: "2020-08-05 11:58"
 }
 
 func newTestParser(t *testing.T) Parser {
-	parser, err := NewParser(testDateLayout, testBuiltinTagPrefix, testCustomTagPrefix)
+	parser, err := NewParser(testDateLayout, testTagPrefix)
 	if err != nil {
 		t.Fatalf("couldn't create new parser: %s", err)
 	}
@@ -123,18 +122,16 @@ func TestParseTags(t *testing.T) {
 title: "Dummy Entry"
 date: "2020-08-05 11:58"
 tags:
- - "@!tag-frontmatter-builtin"
  - "@?tag-frontmatter-custom"
 ---
 
-This is some content. I'm a @!tag-inline-builtin. Now I'm a @?tag-inline-custom.`
+This is some content. I'm a @?tag-inline-1. Now I'm a @?tag-inline-2.`
 
 	entry := parseForTest(t, p, content)
 	expected := map[string]bool{
-		"@!tag-frontmatter-builtin": true,
-		"@?tag-frontmatter-custom":  true,
-		"@!tag-inline-builtin":      true,
-		"@?tag-inline-custom":       true,
+		"@?tag-frontmatter-custom": true,
+		"@?tag-inline-1":           true,
+		"@?tag-inline-2":           true,
 	}
 
 	actual := map[string]bool{}

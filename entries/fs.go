@@ -10,12 +10,18 @@ import (
 // FromDirectory returns an Collection built from a directory.
 // It will return an Collection, a list of errors that occured while parsing entries and finally an error that occured
 // when processing the directory or adding an entry.
-func FromDirectory(path string) (graph *Collection, entryErrs []error, err error) {
+func FromDirectory(path, dateLayout, tagPrefix string) (graph *Collection, entryErrs []error, err error) {
 	graph = NewCollection()
 
 	// We calculate a couple things up here once to avoid calculating it for every file.
 	start := strings.Index(path, "entries")
 	gitDir := filepath.Join("entries", ".git")
+
+	// Create a parser that can be reused for each entry.
+	parser, err := NewParser(dateLayout, tagPrefix)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Keeping track of attachments is a little difficult, here we create a map to hold all attachments sorted by the folder they were found in.
 	// At the end, we go through all entries found and lookup the folder corresponding to that entry's path and add attachments if any were found.
@@ -45,7 +51,7 @@ func FromDirectory(path string) (graph *Collection, entryErrs []error, err error
 			return nil
 		}
 
-		entry, entryErr := NewEntryFromFile(subpath)
+		entry, entryErr := parser.FromFile(subpath)
 
 		if entryErr != nil {
 			entryErrs = append(entryErrs, entryErr)
@@ -76,12 +82,18 @@ func FromDirectory(path string) (graph *Collection, entryErrs []error, err error
 // when processing the directory or adding an entry.
 // The main difference from FromDirectory is that this is done asynchronously by spawning threads to parse many entries simulataneously.
 // This can be anywhere from 1.5-3.0x faster but means it is a more intensive task.
-func FromDirectoryAsync(path string) (graph *Collection, entryErrs []error, err error) {
+func FromDirectoryAsync(path, dateLayout, tagPrefix string) (graph *Collection, entryErrs []error, err error) {
 	graph = NewCollection()
 
 	// We calculate a couple things up here once to avoid calculating it for every file.
 	start := strings.Index(path, "entries")
 	gitDir := filepath.Join("entries", ".git")
+
+	// Create a parser that can be reused for each entry.
+	parser, err := NewParser(dateLayout, tagPrefix)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Keeping track of attachments is a little difficult, here we create a map to hold all attachments sorted by the folder they were found in.
 	// At the end, we go through all entries found and lookup the folder corresponding to that entry's path and add attachments if any were found.
@@ -96,7 +108,7 @@ func FromDirectoryAsync(path string) (graph *Collection, entryErrs []error, err 
 
 	// Spawn the amount of workers specified:
 	for w := 0; w < numWorkers; w++ {
-		go fileWorker(w, subpaths, results)
+		go fileWorker(w, parser, subpaths, results)
 	}
 
 	// In one goroutine, recursively walk the path to entries that is given and add entries that need to be passed
@@ -185,9 +197,9 @@ type entryMsg struct {
 }
 
 // fileWorker completes parsing all the entries asynchronously.
-func fileWorker(id int, subpaths <-chan string, results chan<- entryMsg) {
+func fileWorker(id int, parser Parser, subpaths <-chan string, results chan<- entryMsg) {
 	for subpath := range subpaths {
-		entry, entryErr := NewEntryFromFile(subpath)
+		entry, entryErr := parser.FromFile(subpath)
 		results <- entryMsg{entry, entryErr}
 	}
 

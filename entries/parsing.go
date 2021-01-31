@@ -2,6 +2,8 @@ package entries
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -51,26 +53,19 @@ type YAMLFrontMatter struct {
 type Parser struct {
 	dateLayout string
 
-	reBuiltinTag *regexp.Regexp
-	reCustomTag  *regexp.Regexp
+	reTag *regexp.Regexp
 }
 
 // NewParser returns a new parser.
-func NewParser(dateLayout, builtinTagPrefix, customTagPrefix string) (Parser, error) {
-	reBuiltinTag, err := regexp.Compile(regexp.QuoteMeta(builtinTagPrefix) + "[\\w|-]+")
-	if err != nil {
-		return Parser{}, fmt.Errorf("could not build custom tag regex: %w", err)
-	}
-
-	reCustomTag, err := regexp.Compile(regexp.QuoteMeta(customTagPrefix) + "[\\w|-]+")
+func NewParser(dateLayout, tagPrefix string) (Parser, error) {
+	reTag, err := regexp.Compile(regexp.QuoteMeta(tagPrefix) + "[\\w|-]+")
 	if err != nil {
 		return Parser{}, fmt.Errorf("could not build custom tag regex: %w", err)
 	}
 
 	return Parser{
-		dateLayout:   dateLayout,
-		reBuiltinTag: reBuiltinTag,
-		reCustomTag:  reCustomTag,
+		dateLayout: dateLayout,
+		reTag:      reTag,
 	}, nil
 }
 
@@ -172,6 +167,55 @@ func (p Parser) Parse(path, content string) (*Entry, error) {
 	return entry, nil
 }
 
+// FromFile returns a new Entry given a path to the `entry.md` file in that file system.
+// It will return an error if the entry cannot be read.
+func (p *Parser) FromFile(originalPath string) (*Entry, error) {
+	path := strings.TrimSuffix(originalPath, "/entry.md")
+
+	file, err := os.Open(originalPath)
+	if err != nil {
+		return nil, ErrEntryReadFailed{Path: path, Err: err}
+	}
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, ErrEntryReadFailed{Path: path, Err: err}
+	}
+
+	content := string(bytes)
+
+	entry, err := p.Parse(path, content)
+	if err != nil {
+		return nil, err
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, ErrEntryReadFailed{Path: path, Err: fmt.Errorf("error getting file stat: %w", err)}
+	}
+
+	entry.ModTime = stat.ModTime()
+
+	if entry.Date == (time.Time{}) {
+		entry.Date = entry.ModTime
+	}
+
+	// Here we strip the path to the store itselft from the store.
+	// This means something like:
+	// "/home/user/.local/share/albatross/default/entries/journal/2020/04/10"
+	// becomes
+	// "journal/2020/04/10"
+	// Which is the format used by the rest of the program.
+	// 8 is used here as it's the length of the string 'entries/'
+	start := strings.Index(path, "entries")
+	if start != -1 {
+		path = path[start+8:]
+	}
+	entry.Path = path
+
+	return entry, nil
+}
+
 // extractFrontMatter extracts the YAML front matter text from the entry and returns it, along with setting
 // the .strippedContent value to the original content without the front matter included.
 func (p Parser) extractFrontMatter(path, content string) (frontMatter string, strippedContent string, err error) {
@@ -247,14 +291,9 @@ func (p Parser) getFirstSentence(path, strippedContent string) (string, error) {
 func (p Parser) parseTags(path, strippedContent string) ([]string, error) {
 	results := []string{}
 
-	builtinMatches := p.reBuiltinTag.FindAllString(strippedContent, -1)
-	if builtinMatches != nil {
-		results = append(results, builtinMatches...)
-	}
-
-	customMatches := p.reCustomTag.FindAllString(strippedContent, -1)
-	if customMatches != nil {
-		results = append(results, customMatches...)
+	matches := p.reTag.FindAllString(strippedContent, -1)
+	if matches != nil {
+		results = append(results, matches...)
 	}
 
 	return results, nil

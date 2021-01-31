@@ -16,35 +16,34 @@ var log *logrus.Entry = logrus.New().WithField("prefix", "albatross")
 // Config holds configuration options for an Albatross store.
 type Config struct {
 	// Path contains the path to the Albatross store.
-	Path string
+	Path string `yaml:"path"`
 
 	// DateFormat is a Go-formatted date that is used when parsing the front matter of entries.
 	// By default, it is "2006-01-02 15:04".
-	DateFormat string
+	DateFormat string `yaml:"date-format"`
 
-	// TagPrefixes contains a list of tag prefixes. These are what become before tags when being used in
-	// an entry. By default, they are "@?" and "@!".
-	TagPrefixes []string
+	// TagPrefix is the prefix used to identify a tag in an entry. By default, this is "@?".
+	TagPrefix string `yaml:"tag-prefix"`
 
 	// UseGit specifies whether the store should use Git.
 	// By default, it is true.
-	UseGit bool
+	UseGit bool `yaml:"use-git"`
 
 	// Encryption contains the configuration for how the store is encrypted.
-	Encryption *EncryptionConfig
+	Encryption *EncryptionConfig `yaml:"encryption"`
 }
 
 // EncryptionConfig holds configuration info for the encryption functionality.
 // Most of the time, this is part of an albatross.Config.
 type EncryptionConfig struct {
-	PublicKey  string
-	PrivateKey string
+	PublicKey  string `yaml:"public-key"`
+	PrivateKey string `yaml:"private-key"`
 }
 
 // DefaultConfig contains all the default configuration options for a store.
 var DefaultConfig = &Config{
-	DateFormat:  "2006-01-02 15:04",
-	TagPrefixes: []string{"@?", "@!"},
+	DateFormat: "2006-01-02 15:04",
+	TagPrefix:  "@?",
 	Encryption: &EncryptionConfig{
 		PublicKey:  filepath.Join(getConfigDir(), "albatross", "keys", "public.key"),
 		PrivateKey: filepath.Join(getConfigDir(), "albatross", "keys", "private.key"),
@@ -58,13 +57,42 @@ func NewConfig() *Config {
 	return &Config{
 		Path: "", // Can't set a default path.
 
-		DateFormat:  DefaultConfig.DateFormat,
-		TagPrefixes: DefaultConfig.TagPrefixes,
-		UseGit:      true,
+		DateFormat: DefaultConfig.DateFormat,
+		TagPrefix:  DefaultConfig.TagPrefix,
+		UseGit:     true,
 		Encryption: &EncryptionConfig{
 			PublicKey:  DefaultConfig.Encryption.PublicKey,
 			PrivateKey: DefaultConfig.Encryption.PrivateKey,
 		},
+	}
+}
+
+// setDefaults sets all the default values in a config.
+func (c *Config) setDefaults() {
+	if c.DateFormat == "" {
+		c.DateFormat = DefaultConfig.DateFormat
+	}
+
+	if c.TagPrefix == "" {
+		c.TagPrefix = DefaultConfig.TagPrefix
+	}
+
+	// TODO: need to flip this around to c.DisableGit because it's impossible to distinguish between c.UseGit being uninitialised or
+	// purposefully being set to false.
+	if c.UseGit == false {
+		c.UseGit = true
+	}
+
+	if c.Encryption == nil {
+		c.Encryption = &EncryptionConfig{}
+	}
+
+	if c.Encryption.PublicKey == "" {
+		c.Encryption.PublicKey = DefaultConfig.Encryption.PublicKey
+	}
+
+	if c.Encryption.PrivateKey == "" {
+		c.Encryption.PrivateKey = DefaultConfig.Encryption.PrivateKey
 	}
 }
 
@@ -80,6 +108,10 @@ func parseTopLevelConfig(path string) (map[string]*Config, error) {
 	err = yaml.Unmarshal(fileBytes, &configs)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, c := range configs {
+		c.setDefaults()
 	}
 
 	return configs, nil
@@ -98,6 +130,8 @@ func parseConfig(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	config.setDefaults()
 
 	return &config, nil
 }

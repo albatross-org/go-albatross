@@ -152,9 +152,9 @@ func init() {
 	cobra.OnInitialize(initLogging, initStore)
 
 	// Global flags.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", getDefaultConfigPath(), "config file")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", getDefaultConfigPath(), "path to top-level config file")
 	rootCmd.PersistentFlags().StringVar(&logLvl, "level", "info", "logging level (trace, debug, info, warning, error, fatal, panic)")
-	rootCmd.PersistentFlags().StringVar(&storeLocation, "store", "default", "store to use, as defined in config file (e.g. default, thesis)")
+	rootCmd.PersistentFlags().StringVar(&storeLocation, "store", "default", "store to use, either as defined in config file (e.g. default, thesis) or the path to a store")
 	rootCmd.PersistentFlags().BoolVarP(&leaveDecrypted, "leave-decrypted", "l", false, "whether to leave the store decrypted or encrypt it again after decrypting it")
 	rootCmd.PersistentFlags().BoolVarP(&disableGit, "disable-git", "d", false, "don't use git for version control (mainly used when you want to make commits by hand)")
 
