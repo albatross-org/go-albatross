@@ -60,17 +60,45 @@ If multiple entries are matched, a list is displayed to choose from.`,
 			chosen = list.Slice()[0]
 		}
 
-		updateEntry(chosen, customEditor)
+		// Create a parser for testing the validity of an entry once it's been edited.
+		parser, err := entries.NewParser(store.Config.DateFormat, store.Config.TagPrefix)
+		if err != nil {
+			log.Fatalf("Error creating a parser to test if the entry is valid.")
+		}
+		updateEntry(chosen, customEditor, parser)
 	},
 }
 
-func updateEntry(entry *entries.Entry, editorName string) {
+func updateEntry(entry *entries.Entry, editorName string, parser entries.Parser) {
 	content, err := edit(
 		editorName,
 		entry.OriginalContents,
 	)
 	if err != nil {
 		log.Fatal("Couldn't get content from editor: ", err)
+	}
+
+	for {
+		_, err := parser.Parse(entry.Path, content)
+		if err == nil {
+			break
+		}
+
+		fmt.Println("The update you just made to", entry.Path, "isn't valid.")
+		fmt.Println("Error:", err)
+		fmt.Println("")
+
+		editAgain := confirmPrompt("Would you like to correct the entry?")
+		if editAgain {
+			updatedContent, err := edit(editorName, content)
+			if err != nil {
+				fmt.Println("Couldn't get updated content from editor:", err)
+				fmt.Println("Writing original content to entry.")
+				break
+			}
+
+			content = updatedContent
+		}
 	}
 
 	if entry.OriginalContents == content {
