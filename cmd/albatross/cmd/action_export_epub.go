@@ -145,7 +145,7 @@ func convertToEpub(collection *entries.Collection, list entries.List, title, aut
 		<li><a href="paths.xhtml">Path Search</a></li>
 	</ul>`
 
-	_, err := e.AddSection(fmt.Sprintf(info, time.Now().Format(time.RFC3339), command, len(list.Slice())), "Info", "info.xhtml", "")
+	_, err := e.AddSection(fmt.Sprintf(info, time.Now().Format(time.RFC3339), command, list.Len()), "Info", "info.xhtml", "")
 	if err != nil {
 		return nil, err
 	}

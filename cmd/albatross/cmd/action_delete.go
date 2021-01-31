@@ -46,7 +46,7 @@ By default, it will prompt you to confirm for every matched entry. This can be o
 			}
 		}
 
-		if len(list.Slice()) == 0 {
+		if slice.Len() == 0 {
 			fmt.Println("Nothing matched, nothing to delete.")
 		}
 	},

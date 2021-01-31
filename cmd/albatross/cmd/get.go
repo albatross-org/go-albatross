@@ -444,7 +444,7 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 	}
 
 	if globalLog.IsLevelEnabled(logrus.DebugLevel) {
-		log.Debugf("Query matched %d entries in %s.", len(list.Slice()), end.Sub(start))
+		log.Debugf("Query matched %d entries in %s.", list.Len(), end.Sub(start))
 	}
 
 	return collection, filtered, list

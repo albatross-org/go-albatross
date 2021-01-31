@@ -67,6 +67,11 @@ func (es List) Reverse() List {
 	return List{newList}
 }
 
+// Len returns the length of an entry list.
+func (es List) Len() int {
+	return len(es.list)
+}
+
 // Sort sorts an List.
 func (es List) Sort(sortType SortType) List {
 	var sortable sort.Interface

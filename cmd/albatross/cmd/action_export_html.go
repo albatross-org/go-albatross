@@ -515,7 +515,7 @@ Which matched %s entries.`
 
 	date := time.Now().Format("`2006-01-02 15:04`")
 	command = "```\n" + command + "\n```"
-	entriesCount := fmt.Sprintf("`%d`", len(list.Slice()))
+	entriesCount := fmt.Sprintf("`%d`", list.Len())
 
 	output := fmt.Sprintf(template, date, command, entriesCount)
 	err := ioutil.WriteFile(dest, []byte(output), 0644)

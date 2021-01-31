@@ -28,7 +28,7 @@ If multiple entries are matched, a list is displayed to choose from.`,
 		customEditor, err := cmd.Flags().GetString("editor")
 		checkArg(err)
 
-		length := len(list.Slice())
+		length := list.Len()
 
 		if length == 0 {
 			fmt.Println("No entries matched, nothing to update.")
