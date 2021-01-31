@@ -42,7 +42,7 @@ To pass flags to git, use the "--" seperator.
 		}
 
 		if !store.UsingGit() {
-			fmt.Printf("Store '%s' not using Git.\n", storeName)
+			fmt.Printf("Store '%s' not using Git.\n", storeLocation)
 			os.Exit(0)
 		}
 

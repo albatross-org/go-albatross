@@ -35,7 +35,7 @@ func (s *Store) Encrypt() error {
 	err = encryption.EncryptDir(
 		s.entriesPath,
 		s.entriesPath+".gpg",
-		s.config.GetString("encryption.public-key"),
+		s.Config.Encryption.PublicKey,
 	)
 	if err != nil {
 		return err
@@ -63,8 +63,8 @@ func (s *Store) Decrypt(passwordFunc func() (string, error)) error {
 	err = encryption.DecryptDir(
 		s.entriesPath+".gpg",
 		s.entriesPath,
-		s.config.GetString("encryption.public-key"),
-		s.config.GetString("encryption.private-key"),
+		s.Config.Encryption.PublicKey,
+		s.Config.Encryption.PrivateKey,
 		pass,
 	)
 	if err != nil {

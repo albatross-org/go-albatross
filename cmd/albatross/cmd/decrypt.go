@@ -8,7 +8,7 @@ import (
 	"github.com/albatross-org/go-albatross/encryption"
 	"github.com/spf13/cobra"
 
-	albatross "github.com/albatross-org/go-albatross/albatross"
+	"github.com/albatross-org/go-albatross/albatross"
 )
 
 // DecryptCmd represents the decrypt command
@@ -42,7 +42,7 @@ func decryptStore() {
 			failCount++
 			continue
 		} else if _, ok = err.(albatross.ErrStoreDecrypted); ok {
-			fmt.Printf("Store '%s' is already decrypted.\n", storeName)
+			fmt.Printf("Store '%s' is already decrypted.\n", storeLocation)
 			break
 		} else if err != nil {
 			log.Fatal(err)

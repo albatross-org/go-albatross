@@ -128,6 +128,12 @@ func commandExists(cmd string) bool {
 	return err == nil
 }
 
+// exists returns true if the given file exists in a file system.
+func exists(name string) bool {
+	_, err := os.Stat(name)
+	return err == nil
+}
+
 // letterBytes are the letters used to generate a random string.
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 

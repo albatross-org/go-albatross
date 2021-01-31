@@ -3,17 +3,15 @@ package albatross
 import (
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"time"
 
 	"github.com/albatross-org/go-albatross/entries"
-
-	"github.com/spf13/viper"
 )
 
 // Store represents an Albatross store.
 type Store struct {
-	Path string
+	Path   string
+	Config *Config
 
 	entriesPath     string
 	configPath      string
@@ -23,39 +21,6 @@ type Store struct {
 	coll       *entries.Collection
 	disableGit bool
 	hasGit     bool
-
-	config *viper.Viper
-}
-
-// Load returns a new Albatross store representation.
-func Load(path string) (*Store, error) {
-	var s = &Store{Path: path, disableGit: false}
-
-	s.entriesPath = filepath.Join(path, "entries")
-	s.configPath = filepath.Join(path, "config.yaml")
-	s.attachmentsPath = filepath.Join(path, "attachments")
-	s.gitPath = filepath.Join(path, "entries", ".git")
-
-	config, err := parseConfigFile(s.configPath)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get config file %s: %w", s.configPath, err)
-	}
-
-	s.config = config
-
-	encrypted, err := s.Encrypted()
-	if err != nil {
-		return nil, err
-	}
-
-	if !encrypted {
-		err = s.load()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return s, nil
 }
 
 // Collection returns the *entries.Collection for the store. It will give an error if the store is currently encrypted.

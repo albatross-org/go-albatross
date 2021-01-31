@@ -7,6 +7,15 @@ import (
 	. "github.com/stretchr/testify/assert"
 )
 
+func getTestStore(dir string) (*Store, error) {
+	config := NewConfig()
+	config.Path = filepath.Join(dir, "testdata", "stores", "testing.albatross")
+	config.Encryption.PrivateKey = filepath.Join(dir, "testdata", "keys", "private.key")
+	config.Encryption.PublicKey = filepath.Join(dir, "testdata", "keys", "public.key")
+
+	return FromConfig(config)
+}
+
 func TestAttachHashing(t *testing.T) {
 	dir, cleanup := tempTestDir(t)
 
@@ -31,11 +40,8 @@ func TestAttachSymlink(t *testing.T) {
 
 	t.Logf("Temporary test dir: %s", dir)
 
-	store, err := Load(filepath.Join(dir, "testdata", "stores", "testing.albatross"))
+	store, err := getTestStore(dir)
 	Nil(t, err, "not expecting error when loading test store")
-
-	store.config.Set("encryption.private-key", filepath.Join(dir, "testdata", "keys", "private.key"))
-	store.config.Set("encryption.public-key", filepath.Join(dir, "testdata", "keys", "public.key"))
 
 	t.Log("Creating truffles entry...")
 	err = store.Create("food/truffles", `---
@@ -63,11 +69,8 @@ func TestAttachSymlinkFolder(t *testing.T) {
 
 	t.Logf("Temporary test dir: %s", dir)
 
-	store, err := Load(filepath.Join(dir, "testdata", "stores", "testing.albatross"))
+	store, err := getTestStore(dir)
 	Nil(t, err, "not expecting error when loading test store")
-
-	store.config.Set("encryption.private-key", filepath.Join(dir, "testdata", "keys", "private.key"))
-	store.config.Set("encryption.public-key", filepath.Join(dir, "testdata", "keys", "public.key"))
 
 	t.Log("Creating truffles entry...")
 	err = store.Create("food/truffles", `---

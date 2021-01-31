@@ -41,3 +41,15 @@ type ErrEntryAlreadyExists struct {
 func (e ErrEntryAlreadyExists) Error() string {
 	return fmt.Sprintf("entry %s already exists", e.Path)
 }
+
+// ErrLoadStoreInvalid is returned if you try and load an invalid store.
+// For example, trying to load a store named "phd" when a store of that name isn't present in the config.
+type ErrLoadStoreInvalid struct {
+	Name       string
+	ConfigPath string
+}
+
+// Error returns the error message.
+func (e ErrLoadStoreInvalid) Error() string {
+	return fmt.Sprintf("unknown store %s in config %s", e.Name, e.ConfigPath)
+}

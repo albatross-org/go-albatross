@@ -35,7 +35,7 @@ func encryptStore() {
 
 	err := store.Encrypt()
 	if _, ok := err.(albatross.ErrStoreEncrypted); ok {
-		fmt.Printf("Store '%s' is already encrypted.", storeName)
+		fmt.Printf("Store '%s' is already encrypted.", storeLocation)
 	} else if err != nil {
 		log.Fatal(err)
 	}
