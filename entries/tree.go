@@ -32,7 +32,7 @@ type Tree struct {
 }
 
 func listToTree(rootPath string, rootEntry *Entry, list []*Entry, parent *Tree, level int) *Tree {
-	children := []*Tree{}
+	children := map[string]*Tree{}
 	passthroughs := map[string]bool{}
 	tree := &Tree{}
 
@@ -40,10 +40,9 @@ func listToTree(rootPath string, rootEntry *Entry, list []*Entry, parent *Tree, 
 		switch {
 		case filepath.Dir(entry.Path) == rootPath || (rootPath == "" && !strings.Contains(entry.Path, "/")):
 			// The entry is a direct child of the root entry, such as "school/" and "school/further-maths".
-			children = append(
-				children,
-				listToTree(entry.Path, entry, list, tree, level+1),
-			)
+
+			children[entry.Path] = listToTree(entry.Path, entry, list, tree, level+1)
+
 		case strings.HasPrefix(entry.Path, rootPath+"/") && !(filepath.Dir(entry.Path) == rootPath) && rootPath != "":
 			// The entry is a child of the entry, but there's a passthrough between them. For example,
 			// "school/" and "school/further-maths/complex-numbers/test". Here "school/further-maths" is the passthrough.
@@ -71,10 +70,8 @@ func listToTree(rootPath string, rootEntry *Entry, list []*Entry, parent *Tree, 
 	}
 
 	for passthrough := range passthroughs {
-		children = append(
-			children,
-			listToTree(passthrough, nil, list, tree, level+1),
-		)
+		child := listToTree(passthrough, nil, list, tree, level+1)
+		children[child.Path] = child
 	}
 
 	// For direct children:
@@ -83,10 +80,15 @@ func listToTree(rootPath string, rootEntry *Entry, list []*Entry, parent *Tree, 
 	// For passthrough entries:
 	// strings.HasPrefix(entry.Path, root.Path + "/") && !(filepath.Dir(entry.Path) == root.Path)
 
+	childrenSlice := []*Tree{}
+	for _, child := range children {
+		childrenSlice = append(childrenSlice, child)
+	}
+
 	tree.Entry = rootEntry
 	tree.IsEntry = rootEntry != nil
 	tree.Path = rootPath
-	tree.Children = children
+	tree.Children = childrenSlice
 	tree.Level = level
 	tree.Parent = parent
 
