@@ -36,12 +36,20 @@ func listToTree(rootPath string, rootEntry *Entry, list []*Entry, parent *Tree, 
 	passthroughs := map[string]bool{}
 	tree := &Tree{}
 
+	// Restrict the list to only entries starting with rootPath.
+	filteredList := []*Entry{}
 	for _, entry := range list {
+		if rootPath == "" || strings.HasPrefix(entry.Path, rootPath+"/") {
+			filteredList = append(filteredList, entry)
+		}
+	}
+
+	for _, entry := range filteredList {
 		switch {
 		case filepath.Dir(entry.Path) == rootPath || (rootPath == "" && !strings.Contains(entry.Path, "/")):
 			// The entry is a direct child of the root entry, such as "school/" and "school/further-maths".
 
-			children[entry.Path] = listToTree(entry.Path, entry, list, tree, level+1)
+			children[entry.Path] = listToTree(entry.Path, entry, filteredList, tree, level+1)
 
 		case strings.HasPrefix(entry.Path, rootPath+"/") && !(filepath.Dir(entry.Path) == rootPath) && rootPath != "":
 			// The entry is a child of the entry, but there's a passthrough between them. For example,
@@ -66,12 +74,18 @@ func listToTree(rootPath string, rootEntry *Entry, list []*Entry, parent *Tree, 
 			// It's a passthrough at the root of the store.
 			passthrough := entry.Path[:strings.Index(entry.Path, "/")]
 			passthroughs[passthrough] = true
+		default:
 		}
 	}
 
 	for passthrough := range passthroughs {
-		child := listToTree(passthrough, nil, list, tree, level+1)
-		children[child.Path] = child
+		child := listToTree(passthrough, nil, filteredList, tree, level+1)
+
+		// Check we haven't already set this as a child when we were higher up.
+		// This feels hacky -- should be handeled properly.
+		if children[child.Path] == nil {
+			children[child.Path] = child
+		}
 	}
 
 	// For direct children:

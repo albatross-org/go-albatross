@@ -216,7 +216,7 @@ func getTemplate(name string, contextStrings map[string]string) (string, string)
 
 	context["date"] = time.Now()
 
-	templates, err := ioutil.ReadDir(filepath.Join(storePath, "templates"))
+	templates, err := ioutil.ReadDir(filepath.Join(store.Path, "templates"))
 	if err != nil && name != "" {
 		log.Fatalf("Error reading templates directory: %s", err)
 		return "", ""
@@ -229,9 +229,9 @@ func getTemplate(name string, contextStrings map[string]string) (string, string)
 			templateName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
 
 			if templateName == name {
-				matchBytes, err := ioutil.ReadFile(filepath.Join(storePath, "templates", info.Name()))
+				matchBytes, err := ioutil.ReadFile(filepath.Join(store.Path, "templates", info.Name()))
 				if err != nil {
-					log.Fatalf("error reading template file %s: %s", filepath.Join(storePath, "templates", info.Name()), err)
+					log.Fatalf("error reading template file %s: %s", filepath.Join(store.Path, "templates", info.Name()), err)
 				}
 
 				match = string(matchBytes)

@@ -16,7 +16,7 @@ import "path/filepath"
 // If configPath is unset, it defaults to "~/.config/albatross/config.yaml"
 func Load(name, configPath string) (*Store, error) {
 	if configPath == "" {
-		configPath = filepath.Join(getConfigDir(), "albatross", ".config")
+		configPath = filepath.Join(getConfigDir(), "albatross", "config.yaml")
 	}
 
 	var config *Config

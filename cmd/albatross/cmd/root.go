@@ -26,7 +26,6 @@ var leaveDecrypted bool
 var disableGit bool
 
 var storeLocation string
-var storePath string
 
 var store *albatross.Store
 var globalLog *logrus.Logger

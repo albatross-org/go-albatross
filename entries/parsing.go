@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ import (
 
 var (
 	// reFrontMatter matches the front matter of an entry.
-	reFrontMatter = regexp.MustCompile(`^---\n(?:\n|.)+---\n+`)
+	reFrontMatter = regexp.MustCompile(`^---\n(?:\n|.)+---\n*`)
 
 	// reInitialNewlines matches to any newlines at the beginning of a string.
 	reInitialNewlines = regexp.MustCompile(`^\n+`)
@@ -208,8 +209,15 @@ func (p *Parser) FromFile(originalPath string) (*Entry, error) {
 	// Which is the format used by the rest of the program.
 	// 8 is used here as it's the length of the string 'entries/'
 	start := strings.Index(path, "entries")
-	if start != -1 {
-		path = path[start+8:]
+	if start != -1 && path != "" {
+		if start+8 > len(path) && filepath.Base(path) == "entries" {
+			// It's likely this is a 'root' entry, with path like:
+			// /home/user/.local/share/albatross/default/entries
+			// This means there is no path.
+			path = ""
+		} else {
+			path = path[start+8:]
+		}
 	}
 	entry.Path = path
 
@@ -235,7 +243,7 @@ func (p Parser) extractFrontMatter(path, content string) (frontMatter string, st
 	frontMatter = content[startOffset:endOffset]
 	frontMatter = strings.Trim(frontMatter, "\n")
 
-	strippedContent = content[endOffset+4:]
+	strippedContent = content[endOffset+3:]
 	strippedContent = strings.TrimPrefix(strippedContent, "\n")
 
 	return frontMatter, strippedContent, nil

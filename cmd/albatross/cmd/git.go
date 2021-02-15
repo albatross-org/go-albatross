@@ -46,7 +46,7 @@ To pass flags to git, use the "--" seperator.
 			os.Exit(0)
 		}
 
-		newArgs := []string{"--git-dir", filepath.Join(storePath, "entries", ".git"), "--work-tree", filepath.Join(storePath, "entries")}
+		newArgs := []string{"--git-dir", filepath.Join(store.Path, "entries", ".git"), "--work-tree", filepath.Join(store.Path, "entries")}
 		c := exec.Command("git", append(newArgs, args...)...)
 		c.Stdin = os.Stdin
 		c.Stdout = os.Stdout

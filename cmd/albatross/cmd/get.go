@@ -413,7 +413,7 @@ func getFromCommand(cmd *cobra.Command) (collection *entries.Collection, filtere
 		collection.Add(pretendEntry)
 
 		if !parseDontRestrict {
-			query.PathsExact = [][]string{[]string{fakePath}}
+			query.PathsExact = [][]string{{fakePath}}
 		}
 	}
 

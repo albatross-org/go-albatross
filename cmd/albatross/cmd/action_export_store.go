@@ -101,7 +101,7 @@ We should be left with something that looks like this:
 			os.MkdirAll(destPath, 0755)
 
 			// This is the original path of to the entry in the store.
-			origPath := filepath.Join(storePath, "entries", entry.Path)
+			origPath := filepath.Join(store.Path, "entries", entry.Path)
 
 			f, _ := os.Open(origPath)
 			fis, _ := f.Readdir(-1)
