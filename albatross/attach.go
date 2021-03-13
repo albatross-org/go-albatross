@@ -15,6 +15,21 @@ import (
 // AttachCopy attaches a file to an entry by copying it into the entry's folder from the location specified. If the store is encrypted, it
 // will return ErrStoreEncrypted.
 func (s *Store) AttachCopy(path, attachmentPath string) error {
+	// Check what is being attached actually exists.
+	stat, err := os.Stat(attachmentPath)
+	if err != nil {
+		return fmt.Errorf("attachment %s doesn't exist: %w", attachmentPath, err)
+	}
+
+	attachmentName := stat.Name()
+
+	return s.AttachCopyWithName(path, attachmentPath, attachmentName)
+}
+
+// AttachCopyWithName attaches a file to an entry by copying it into the entry's folder from the location specified. If the store is encrypted, it
+// will return ErrStoreEncrypted.
+// AttachCopyWithName differs from AttachCopy because you can specify an attachmentName, which is what the file will be called when attached.
+func (s *Store) AttachCopyWithName(path, attachmentPath, attachmentName string) error {
 	encrypted, err := s.Encrypted()
 	if err != nil {
 		return err
@@ -38,7 +53,6 @@ func (s *Store) AttachCopy(path, attachmentPath string) error {
 	}
 
 	// Find out what the attachment should be called and get what the path to attachment should be.
-	attachmentName := stat.Name()
 	newAttachmentPath := filepath.Join(path, attachmentName)
 
 	// Check if there already exists an attachment with that name in the entry.
@@ -75,6 +89,22 @@ func (s *Store) AttachCopy(path, attachmentPath string) error {
 // it will return ErrStoreEncrypted. path is the path to the entry, relative to the store, and attachmentPath is the
 // path to what is being attached.
 func (s *Store) AttachSymlink(path, attachmentPath string) error {
+	// Check what is being attached actually exists.
+	stat, err := os.Stat(attachmentPath)
+	if err != nil {
+		return fmt.Errorf("attachment %s doesn't exist: %w", attachmentPath, err)
+	}
+
+	attachmentName := stat.Name()
+
+	return s.AttachSymlinkWithName(path, attachmentPath, attachmentName)
+}
+
+// AttachSymlinkWithName attaches a file by creating a symlink to the store's attachment's folder. If the store is encrypted,
+// it will return ErrStoreEncrypted. path is the path to the entry, relative to the store, and attachmentPath is the
+// path to what is being attached.
+// This differs from AttachSymlink as you can give a new name for the attachment.
+func (s *Store) AttachSymlinkWithName(path, attachmentPath, attachmentName string) error {
 	encrypted, err := s.Encrypted()
 	if err != nil {
 		return err
@@ -98,7 +128,6 @@ func (s *Store) AttachSymlink(path, attachmentPath string) error {
 	}
 
 	// Find out what the attachment should be called and get what the path to attachment should be.
-	attachmentName := stat.Name()
 	newAttachmentPath := filepath.Join(path, attachmentName)
 
 	// Check if there already exists an attachment with that name in the entry.
