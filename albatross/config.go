@@ -79,7 +79,7 @@ func (c *Config) setDefaults() {
 
 	// TODO: need to flip this around to c.DisableGit because it's impossible to distinguish between c.UseGit being uninitialised or
 	// purposefully being set to false.
-	if c.UseGit == false {
+	if !c.UseGit {
 		c.UseGit = true
 	}
 
