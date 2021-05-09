@@ -168,6 +168,7 @@ func FromDirectoryAsync(path, dateLayout, tagPrefix string) (graph *Collection, 
 
 		if msg.err != nil {
 			entryErrs = append(entryErrs, msg.err)
+			continue
 		}
 
 		err = graph.Add(msg.entry)
