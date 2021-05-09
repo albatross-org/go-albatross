@@ -1,6 +1,8 @@
 package albatross
 
-import "path/filepath"
+import (
+	"path/filepath"
+)
 
 // Load returns a new Albatross store representation given the name of a store and the path
 // to its configuration.
@@ -51,7 +53,7 @@ func Load(name, configPath string) (*Store, error) {
 
 // FromConfig returns a new Albatross store representation from a Config struct.
 func FromConfig(config *Config) (*Store, error) {
-	var s = &Store{
+	s := &Store{
 		Path:   config.Path,
 		Config: config,
 
