@@ -25,7 +25,7 @@ func FromDirectory(path, dateLayout, tagPrefix string) (graph *Collection, entry
 
 	// Keeping track of attachments is a little difficult, here we create a map to hold all attachments sorted by the folder they were found in.
 	// At the end, we go through all entries found and lookup the folder corresponding to that entry's path and add attachments if any were found.
-	var attachmentsMap = map[string][]Attachment{}
+	attachmentsMap := map[string][]Attachment{}
 
 	err = filepath.Walk(path, func(subpath string, info os.FileInfo, err error) error {
 		switch {
@@ -97,7 +97,7 @@ func FromDirectoryAsync(path, dateLayout, tagPrefix string) (graph *Collection, 
 
 	// Keeping track of attachments is a little difficult, here we create a map to hold all attachments sorted by the folder they were found in.
 	// At the end, we go through all entries found and lookup the folder corresponding to that entry's path and add attachments if any were found.
-	var attachmentsMap = map[string][]Attachment{}
+	attachmentsMap := map[string][]Attachment{}
 
 	// numWorkers is decremented every time a worker finishes
 	numWorkers := 3

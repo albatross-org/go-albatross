@@ -24,8 +24,10 @@ import (
 //       match anything followed by a character that isn't a "]" or "$"
 //   consume as few as possible
 //   match a closing "$"
-var reMatchSingleLatex = regexp.MustCompile(`\$([^\]\$]|[^\]\$].+?)\$`)
-var reMatchDoubleLatex = regexp.MustCompile(`\${2}(.+?)\${2}`)
+var (
+	reMatchSingleLatex = regexp.MustCompile(`\$([^\]\$]|[^\]\$].+?)\$`)
+	reMatchDoubleLatex = regexp.MustCompile(`\${2}(.+?)\${2}`)
+)
 
 // ActionAnkifyCmd represents the 'tags' action.
 var ActionAnkifyCmd = &cobra.Command{
@@ -53,13 +55,13 @@ Will become:
 	│ The point in living is to... │
 	└──────────────────────────────┘
 
-It outputs a TSV file, which can then be redirected into a file:
+It outputs a CSV file, which can then be redirected into a file:
 
-	$ albatross get -t "My Flashcards" ankify > ~/.local/decks/entries.tsv
+	$ albatross get -t "My Flashcards" ankify > ~/.local/decks/entries.csv
 
-The format of the TSV file is:
+The format of the CSV file is:
 
-    <HEADING>	<QUESTION>	<PATH>
+    <HEADING>,<QUESTION>,<PATH>
 
 Importing Into Anki
 -------------------
@@ -73,7 +75,7 @@ You will need to create a new Note Type so that Anki handles the path correctly 
     - This should open the note entry window.
     - Then click 'Fields...', press 'Add' and name it 'Path'.
 
-That should be it. Now when you import the TSV file, select the Note Type as being 'Ankify', or the name that you entered.
+That should be it. Now when you import the CSV file, select the Note Type as being 'Ankify', or the name that you entered.
 
 As a suggestion, decks should cover broad topics as a whole. So instead of creating "School::A-Level::Physics::Topic 1::Electromagnetism",
 it's better to have a deck that's more like "School::A-Level::Physics". If you need to study a specific section of an Albatross store,
@@ -138,10 +140,9 @@ necesary to double up and do 4: '\\\\'. For example:
 	},
 }
 
-// generateAnkiFlashcards outputs a TSV file of flashcards from a list of entries.
+// generateAnkiFlashcards outputs a CSV file of flashcards from a list of entries.
 func generateAnkiFlashcards(entries []*entries.Entry, fixLatex bool, singleOpen, singleClose, doubleOpen, doubleClose string) {
 	csvw := csv.NewWriter(os.Stdout)
-	csvw.Comma = '\t'
 
 	for _, entry := range entries {
 		flashcards, err := extractFlashcards(entry)
@@ -242,7 +243,6 @@ func extractFlashcards(entry *entries.Entry) ([][]string, error) {
 // proper rendering when using with Anki.
 // It does this in a very hacky way by alternating what it replaces text with on each match.
 func fixFlashcardLatex(flashcard []string, singleOpen, singleClose, doubleOpen, doubleClose string) []string {
-
 	for i := range flashcard {
 		text := flashcard[i]
 

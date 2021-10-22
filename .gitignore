@@ -1,1 +1,2 @@
 dist/
+cmd/albatross/cmd/action_export_blog.go

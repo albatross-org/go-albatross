@@ -370,7 +370,6 @@ At the moment, it would probably be a lot of work to create a skeleton any diffe
 
 		if serve || serveOnly {
 			serveHugoSite(outputDir, port, openBrowser, openPath)
-
 		} else {
 			fmt.Println("\n\n\n# Done! The HTML has been exported to", outputDir)
 			cleanupHugoDir(hugoDir)
@@ -386,7 +385,6 @@ At the moment, it would probably be a lot of work to create a skeleton any diffe
 		} else {
 			fmt.Println("# Done!")
 		}
-
 	},
 }
 
