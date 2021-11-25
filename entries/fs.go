@@ -178,7 +178,7 @@ func FromDirectoryAsync(path, dateLayout, tagPrefix string) (graph *Collection, 
 	}
 
 	if walkErr != nil {
-		return nil, []error{}, err
+		return nil, []error{}, walkErr
 	}
 
 	// This shouldn't cause any issues seeing as this code should only run after all the parsing has finished.
