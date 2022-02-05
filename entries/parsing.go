@@ -177,6 +177,7 @@ func (p *Parser) FromFile(originalPath string) (*Entry, error) {
 	if err != nil {
 		return nil, ErrEntryReadFailed{Path: path, Err: err}
 	}
+	defer file.Close()
 
 	bytes, err := ioutil.ReadAll(file)
 	if err != nil {
